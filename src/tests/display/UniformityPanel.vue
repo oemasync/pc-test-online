@@ -7,6 +7,13 @@
       class="uniformity-panel__stage"
       :class="{ 'uniformity-panel__stage--active': active }"
     />
+    <p
+      v-if="fullscreenUnavailable"
+      class="uniformity-panel__fullscreen-status"
+      role="status"
+    >
+      {{ t('tests.display.uniformity.fullscreenUnavailable') }}
+    </p>
     <div class="uniformity-panel__actions">
       <button
         type="button"
@@ -28,6 +35,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { UNIFORMITY_BLACK } from './logic';
 
 const emit = defineEmits<{ (e: 'update:bleed', value: boolean): void }>();
 
@@ -35,21 +43,28 @@ const { t } = useI18n();
 const stageRef = ref<HTMLElement | null>(null);
 const active = ref(false);
 const bleed = ref(false);
+const fullscreenUnavailable = ref(false);
 
 async function showBlack(): Promise<void> {
     const element = stageRef.value;
     if (!element) return;
     active.value = true;
+    fullscreenUnavailable.value = false;
+    if (typeof element.requestFullscreen !== 'function') {
+        fullscreenUnavailable.value = true;
+        return;
+    }
+
     try {
-        if (typeof element.requestFullscreen === 'function') {
-            await element.requestFullscreen();
-        }
+        await element.requestFullscreen();
     } catch {
-        // Keep the inline black panel usable when fullscreen is unavailable.
+        fullscreenUnavailable.value = true;
     }
 }
 
 watch(bleed, value => emit('update:bleed', value));
+
+defineExpose({ stageRef })
 </script>
 
 <style scoped>
@@ -58,11 +73,11 @@ watch(bleed, value => emit('update:bleed', value));
     margin: 0.5rem 0;
     border: 1px solid var(--border);
     border-radius: 0.5rem;
-    background: #111;
+    background: var(--surface);
 }
 
 .uniformity-panel__stage--active {
-    background: #000;
+    background: v-bind('UNIFORMITY_BLACK');
 }
 
 .uniformity-panel__actions {

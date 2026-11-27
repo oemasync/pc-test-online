@@ -8,7 +8,8 @@
     "exitHint": "Pulsa Esc para salir. Las flechas o Espacio cambian de color; clic avanza.",
     "currentColor": "Color actual",
     "markDefect": "Marcar defecto en este color",
-    "defects": "Colores con defectos marcados"
+    "defects": "Colores con defectos marcados",
+    "fullscreenUnavailable": "La pantalla completa no está disponible en este navegador"
   },
   "gradient": {
     "title": "Bandeado de degradados",
@@ -19,7 +20,8 @@
     "title": "Fuga de retroiluminación / uniformidad",
     "description": "Observa la pantalla negra en una habitación oscura.",
     "startFullscreen": "Mostrar pantalla negra a pantalla completa",
-    "markBleed": "Fuga o brillo visible"
+    "markBleed": "Fuga o brillo visible",
+    "fullscreenUnavailable": "La pantalla completa no está disponible en este navegador"
   },
   "sharpness": {
     "title": "Nitidez de patrones finos",

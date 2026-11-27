@@ -20,6 +20,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { GRADIENT_STOPS } from './logic';
 
 const emit = defineEmits<{ (e: 'update:banding', value: boolean): void }>();
 
@@ -44,15 +45,15 @@ watch(banding, value => emit('update:banding', value));
 }
 
 .gradient-panel__sample--horizontal {
-    background: linear-gradient(90deg, #000, #fff);
+    background: v-bind('GRADIENT_STOPS.horizontal');
 }
 
 .gradient-panel__sample--vertical {
-    background: linear-gradient(180deg, #000, #fff);
+    background: v-bind('GRADIENT_STOPS.vertical');
 }
 
 .gradient-panel__sample--radial {
-    background: radial-gradient(circle, #fff, #000);
+    background: v-bind('GRADIENT_STOPS.radial');
 }
 
 .gradient-panel__toggle {

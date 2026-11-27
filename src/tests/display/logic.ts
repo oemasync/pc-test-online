@@ -3,6 +3,21 @@
 
 export const DISPLAY_COLORS = ['black', 'white', 'red', 'green', 'blue', 'gray'] as const;
 
+export const PIXEL_CYCLE_COLOURS = DISPLAY_COLORS;
+
+export const GRADIENT_STOPS = {
+    horizontal: 'linear-gradient(90deg, #000, #fff)',
+    vertical: 'linear-gradient(180deg, #000, #fff)',
+    radial: 'radial-gradient(circle, #fff, #000)',
+} as const;
+
+export const SHARPNESS_COLORS = {
+    background: '#ffffff',
+    foreground: '#000000',
+} as const;
+
+export const UNIFORMITY_BLACK = '#000000';
+
 export type DisplayColor = (typeof DISPLAY_COLORS)[number];
 
 export interface ColorSequenceState {

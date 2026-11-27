@@ -30,6 +30,13 @@
         {{ t('tests.display.pixelCycle.markDefect') }}
       </button>
     </div>
+    <p
+      v-if="fullscreenUnavailable"
+      class="pixel-cycle__fullscreen-status"
+      role="status"
+    >
+      {{ t('tests.display.pixelCycle.fullscreenUnavailable') }}
+    </p>
     <p v-if="defects.length">
       {{ t('tests.display.pixelCycle.defects') }}: {{ defects.join(', ') }}
     </p>
@@ -51,6 +58,7 @@ const { t } = useI18n();
 const stageRef = ref<HTMLElement | null>(null);
 const state = ref(createColorSequenceState(0));
 const defects = ref<DisplayColor[]>([]);
+const fullscreenUnavailable = ref(false);
 
 const colorName = computed(() => state.value.color);
 const colorValue = computed(() => state.value.color);
@@ -80,12 +88,16 @@ async function startFullscreen(): Promise<void> {
     const element = stageRef.value;
     if (!element) return;
 
+    fullscreenUnavailable.value = false;
+    if (typeof element.requestFullscreen !== 'function') {
+        fullscreenUnavailable.value = true;
+        return;
+    }
+
     try {
-        if (typeof element.requestFullscreen === 'function') {
-            await element.requestFullscreen();
-        }
+        await element.requestFullscreen();
     } catch {
-        // Headless or unsupported environments may reject; keep the inline stage usable.
+        fullscreenUnavailable.value = true;
     }
 }
 
@@ -125,8 +137,8 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+    color: var(--text);
+    text-shadow: 0 1px 2px var(--bg);
 }
 
 .pixel-cycle__overlay {

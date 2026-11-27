@@ -8,7 +8,8 @@
     "exitHint": "Press Esc to exit fullscreen. Arrow keys or Space cycle colors; click advances.",
     "currentColor": "Current color",
     "markDefect": "Mark defect on this color",
-    "defects": "Marked defect colors"
+    "defects": "Marked defect colors",
+    "fullscreenUnavailable": "Fullscreen is unavailable in this browser"
   },
   "gradient": {
     "title": "Gradient banding",
@@ -19,7 +20,8 @@
     "title": "Backlight bleed / uniformity",
     "description": "View the black screen in a dark room.",
     "startFullscreen": "Show black screen fullscreen",
-    "markBleed": "Bleed or glow visible"
+    "markBleed": "Bleed or glow visible",
+    "fullscreenUnavailable": "Fullscreen is unavailable in this browser"
   },
   "sharpness": {
     "title": "Fine pattern sharpness",

@@ -19,6 +19,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { SHARPNESS_COLORS } from './logic';
 
 const emit = defineEmits<{ (e: 'update:defect', value: boolean): void }>();
 
@@ -41,12 +42,12 @@ function draw(): void {
     const context = canvas.getContext('2d');
     if (!context) return;
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    context.fillStyle = '#ffffff';
+    context.fillStyle = SHARPNESS_COLORS.background;
     context.fillRect(0, 0, cssWidth, cssHeight);
 
     const deviceWidth = canvas.width;
     const deviceHeight = canvas.height;
-    context.fillStyle = '#000000';
+    context.fillStyle = SHARPNESS_COLORS.foreground;
     for (let y = 0; y < deviceHeight; y += 1) {
         for (let x = 0; x < deviceWidth; x += 1) {
             if ((x + y) % 2 === 0) {
@@ -55,7 +56,7 @@ function draw(): void {
         }
     }
 
-    context.strokeStyle = '#000000';
+    context.strokeStyle = SHARPNESS_COLORS.foreground;
     context.lineWidth = 1 / ratio;
     const midY = Math.round(cssHeight / 2);
     const midX = Math.round(cssWidth / 2);

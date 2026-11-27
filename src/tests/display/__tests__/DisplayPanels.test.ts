@@ -3,12 +3,28 @@ import { describe, expect, it, vi } from 'vitest'
 import { mountWithPlugins } from '@/test-utils/mount'
 import PixelCyclePanel from '../PixelCyclePanel.vue'
 import RefreshRatePanel from '../RefreshRatePanel.vue'
+import UniformityPanel from '../UniformityPanel.vue'
 
 describe('PixelCyclePanel', () => {
   it('cycles colors with a click', async () => {
     const wrapper = mountWithPlugins(PixelCyclePanel)
     await wrapper.find('.pixel-cycle__stage').trigger('click')
     expect(wrapper.text()).toContain('white')
+  })
+
+  it('shows a fullscreen-unavailable message when fullscreen is unsupported', async () => {
+    const wrapper = mountWithPlugins(PixelCyclePanel)
+    const stage = wrapper.find('.pixel-cycle__stage').element as HTMLElement
+    Object.defineProperty(stage, 'requestFullscreen', {
+      configurable: true,
+      value: undefined,
+    })
+
+    await wrapper.find('button').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Fullscreen is unavailable in this browser')
+    wrapper.unmount()
   })
 
   it('exits fullscreen on unmount', async () => {
@@ -28,6 +44,23 @@ describe('PixelCyclePanel', () => {
     await flushPromises()
 
     expect(exitFullscreen).toHaveBeenCalled()
+  })
+})
+
+describe('UniformityPanel', () => {
+  it('shows a fullscreen-unavailable message when fullscreen is unsupported', async () => {
+    const wrapper = mountWithPlugins(UniformityPanel)
+    const stage = wrapper.find('.uniformity-panel__stage').element as HTMLElement
+    Object.defineProperty(stage, 'requestFullscreen', {
+      configurable: true,
+      value: undefined,
+    })
+
+    await wrapper.find('button').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Fullscreen is unavailable in this browser')
+    wrapper.unmount()
   })
 })
 
