@@ -34,7 +34,7 @@ export const i18n = createI18n({
   messages: {
     en: enMessages,
     es: esMessages,
-  } as any,
+  } as never,
 })
 
 export const availableLocales = ['en', 'es'] as const
