@@ -113,9 +113,7 @@ export function panForChannel(channel: Channel): number {
 
 export function voiceGain(volume: number, voiceCount: number): number {
     const v = volume > MAX_OUTPUT_GAIN ? MAX_OUTPUT_GAIN : volume;
-    const n = voiceCount < 1 ? 1 : voiceCount;
-    const per = v / n;
-    return per > MAX_OUTPUT_GAIN ? MAX_OUTPUT_GAIN : per;
+    return v / voiceCount;
 }
 
 export function gainRampEnvelope(
