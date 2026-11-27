@@ -10,18 +10,18 @@ no installs, no accounts, nothing leaves your machine.
 
 | Test | What it checks |
 | --- | --- |
-| Webcam | Live preview, device selection, snapshot capture |
-| Microphone | Input level visualization, recording and playback |
-| Speakers | Left/right channels, frequency sweeps, tone playback, output device selection |
-| Keyboard | Key presses, layout, repeat, modifier keys |
-| Mouse | Buttons, scroll, movement, pointer precision |
-| Touch | Multi-touch points, pressure and gesture recognition |
-| Battery | Charge level, charging state, time estimates |
-| System info | Browser, OS, CPU cores, memory, network details |
-| Display | Dead pixels, refresh rate, color and uniformity checks |
-| Gamepad | Buttons, axes, vibration and connection status |
-| CPU/GPU benchmark | Synthetic compute and graphics performance |
-| Motion sensors | Accelerometer, gyroscope, magnetometer readings |
+| Webcam | Camera access, live preview, resolution/frame rate, supported ranges, snapshot capture, device switching, covered/frozen-frame warnings |
+| Microphone | Microphone access, live level, clipping/silence detection, noise floor, waveform and spectrum, recording/playback, device switching, audio processing constraints |
+| Speakers | Audio output path: left/right/both channels, tone generator, frequency sweep, polarity, output device routing |
+| Keyboard | Keyboard input events, simultaneous key presses, event log |
+| Mouse | Mouse buttons, double-click interval, wheel directions/deltaMode, polling rate, drag, switch chatter |
+| Touch | Multi-touch and pen input, simultaneous points, dead-zone coverage grid, pressure/tilt/size readouts |
+| Battery | Battery charge level, charging state, time estimates, drain/charge rate |
+| System info | CPU concurrency, device memory, platform/architecture, GPU renderer, screen geometry, storage, network, languages/timezone |
+| Display | Dead/stuck pixels, gradient banding, backlight bleed/uniformity, sharpness, refresh rate, frame pacing, HDR/color gamut |
+| Gamepad | Gamepad connection, buttons, axes, stick drift, circularity, trigger range, vibration |
+| CPU/GPU benchmark | CPU (single/multi-thread), memory bandwidth, GPU fill-rate benchmarks with checksum verification |
+| Motion sensors | Device orientation/motion, Generic Sensors, screen orientation, vibration availability |
 
 ## Privacy
 
