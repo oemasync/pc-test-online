@@ -118,9 +118,8 @@ describe('coverage grid', () => {
         expect(s.grid.rows * s.grid.cols).toBe(9);
         s = coverageReducer(s, { type: 'markPath', samples: [{ x: 0.5, y: 0.5, pointerId: 1 }] });
         expect(coveredCount(s)).toBe(1);
-        const before = coveredCount(s);
         s = coverageReducer(s, { type: 'markPath', samples: [{ x: 0, y: 0, pointerId: 1 }, { x: 1, y: 1, pointerId: 1 }] });
-        expect(coveredCount(s)).toBeGreaterThanOrEqual(before);
+        expect(coveredCount(s)).toBe(3);
     });
 
     it('coverageRatio reaches 1 when all cells covered', () => {

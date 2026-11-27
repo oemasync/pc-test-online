@@ -9,11 +9,9 @@ describe('TouchTest component', () => {
     expect(wrapper.find('button').exists()).toBe(true)
   })
 
-  it('removes listeners and cancels rAF on unmount', () => {
+  it('removes listeners on unmount', () => {
     const addSpy = vi.spyOn(HTMLElement.prototype, 'addEventListener')
     const removeSpy = vi.spyOn(HTMLElement.prototype, 'removeEventListener')
-    const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1 as unknown as number)
-    const cancelSpy = vi.spyOn(window, 'cancelAnimationFrame')
 
     const wrapper = mountWithPlugins(TouchTest)
     wrapper.unmount()
@@ -22,11 +20,8 @@ describe('TouchTest component', () => {
     expect(removeSpy).toHaveBeenCalledWith('pointermove', expect.any(Function))
     expect(removeSpy).toHaveBeenCalledWith('pointerup', expect.any(Function))
     expect(removeSpy).toHaveBeenCalledWith('pointercancel', expect.any(Function))
-    expect(cancelSpy).toHaveBeenCalled()
 
     addSpy.mockRestore()
     removeSpy.mockRestore()
-    rafSpy.mockRestore()
-    cancelSpy.mockRestore()
   })
 })

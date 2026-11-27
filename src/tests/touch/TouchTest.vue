@@ -65,7 +65,10 @@
         />
       </div>
 
-      <div class="touch-test__readouts">
+      <div
+        class="touch-test__readouts"
+        aria-live="polite"
+      >
         <span>{{ t('tests.touch.penDetected') }}: {{ penDetected ? 'yes' : 'no' }}</span>
         <span>{{ t('tests.touch.pressureReported') }}:
           {{ pressureReported ? 'yes' : 'no' }}</span>
@@ -100,7 +103,6 @@ const COLS = 20;
 const supported = navigator.maxTouchPoints > 0;
 const surface = ref<HTMLElement | null>(null);
 const fullscreen = ref(false);
-const rafId = ref<number | null>(null);
 
 const coverageState = ref(createCoverageState(ROWS, COLS));
 const active = ref(createPointerTracker());
@@ -152,8 +154,10 @@ function onPointerDown(e: PointerEvent): void {
     e.preventDefault();
     try {
         surface.value.setPointerCapture(e.pointerId);
-    } catch {
-        // ignore
+    } catch (error) {
+        // setPointerCapture throws InvalidStateError for inactive/synthetic pointers;
+        // tracking and coverage continue without capture.
+        void error;
     }
     const rect = surface.value.getBoundingClientRect();
     const sample: PointerSample = {
@@ -232,16 +236,9 @@ onMounted(() => {
         surface.value.addEventListener('pointerup', onPointerUp);
         surface.value.addEventListener('pointercancel', onPointerCancel);
     }
-    rafId.value = requestAnimationFrame(() => {
-        rafId.value = null;
-    });
 });
 
 onUnmounted(() => {
-    if (rafId.value !== null) {
-        cancelAnimationFrame(rafId.value);
-        rafId.value = null;
-    }
     if (surface.value) {
         surface.value.removeEventListener('pointerdown', onPointerDown);
         surface.value.removeEventListener('pointermove', onPointerMove);
@@ -294,7 +291,7 @@ onUnmounted(() => {
     margin-left: -8px;
     margin-top: -8px;
     border-radius: 50%;
-    background: #f59e0b;
+    background: var(--color-accent);
     pointer-events: none;
 }
 .touch-test__stats {
@@ -310,6 +307,6 @@ onUnmounted(() => {
 }
 .touch-test__unsupported {
     padding: 1rem;
-    color: var(--muted, #94a3b8);
+    color: var(--color-text-muted);
 }
 </style>
