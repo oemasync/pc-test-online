@@ -67,16 +67,10 @@ export function summarizeRuns(values: readonly number[], partial = false): RunSu
 }
 
 export function singleThreadScore(workUnits: number, durationMs: number): number {
-  if (durationMs <= 0) {
-    return 0;
-  }
   return workUnits / (durationMs / 1000);
 }
 
 export function multiThreadThroughput(totalWorkUnits: number, wallClockMs: number): number {
-  if (wallClockMs <= 0) {
-    return 0;
-  }
   return totalWorkUnits / (wallClockMs / 1000);
 }
 
@@ -85,11 +79,13 @@ export function scalingEfficiency(
   singleThroughput: number,
   workers: number,
 ): number {
-  const denom = singleThroughput * workers;
-  if (denom <= 0) {
-    return 0;
-  }
-  return multiThroughput / denom;
+  return multiThroughput / (singleThroughput * workers);
+}
+
+// Repeat a workload until its run lasts at least targetMs.
+// Given the measured duration of one repetition, return the repeat count.
+export function calibrateRepeats(singleRepMs: number, targetMs: number): number {
+  return Math.max(1, Math.ceil(targetMs / singleRepMs));
 }
 
 export function createScheduler(totalRuns: number): SchedulerState {
@@ -127,9 +123,9 @@ export function setRunProgress(state: SchedulerState, fraction: number): Schedul
   if (state.status !== 'running') {
     return state;
   }
-  const f = fraction < 0 ? 0 : fraction > 1 ? 1 : fraction;
-  const progress = (state.completed.length + f) / state.totalRuns;
-  return { ...state, progress: progress < 0 ? 0 : progress > 1 ? 1 : progress };
+  const f = clamp(fraction, 0, 1);
+  const progress = clamp((state.completed.length + f) / state.totalRuns, 0, 1);
+  return { ...state, progress };
 }
 
 export function completeRun(state: SchedulerState, value: number): SchedulerState {

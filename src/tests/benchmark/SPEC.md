@@ -18,6 +18,11 @@ checksums are exported as `BENCHMARK_PARAMS` and `EXPECTED_CHECKSUMS`; a result
 that does not match fails with a clear checksum-mismatch message (a genuine
 'unstable CPU / overclock' finding).
 
+- Each timed run repeats the workload until it lasts ~200 ms; the repeat count is
+  calibrated once per workload. Work units = iterations x repeats. Checksums are
+  verified per repetition (first and last).
+- Memory test runs single-threaded only (OOM guard: 2 x 64 MiB per call).
+
 ## Browser APIs (MDN names)
 - Workers: `Worker`, `new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' })`, `worker.postMessage`, `worker.onmessage`, `worker.terminate()`.
 - Concurrency: `navigator.hardwareConcurrency` (may be undefined; fallback 1).

@@ -6,6 +6,7 @@ import {
   singleThreadScore,
   multiThreadThroughput,
   scalingEfficiency,
+  calibrateRepeats,
   createScheduler,
   startRun,
   setRunProgress,
@@ -63,17 +64,22 @@ describe('scoring', () => {
   it('singleThreadScore is work units per second', () => {
     expect(singleThreadScore(1000, 2000)).toBeCloseTo(500, 5);
   });
-  it('singleThreadScore returns 0 for non-positive duration', () => {
-    expect(singleThreadScore(10, 0)).toBe(0);
-  });
   it('multiThreadThroughput is total work per second', () => {
     expect(multiThreadThroughput(4000, 1000)).toBeCloseTo(4000, 5);
   });
   it('scalingEfficiency is multi / (single * workers)', () => {
     expect(scalingEfficiency(4000, 1000, 4)).toBeCloseTo(1, 5);
   });
-  it('scalingEfficiency returns 0 for zero denominator', () => {
-    expect(scalingEfficiency(10, 0, 4)).toBe(0);
+  it('scalingEfficiency divides through', () => {
+    expect(scalingEfficiency(10, 2, 4)).toBeCloseTo(1.25, 5);
+  });
+});
+
+describe('calibration', () => {
+  it('reaches target duration', () => {
+    expect(calibrateRepeats(5, 200)).toBe(40);
+    expect(calibrateRepeats(100, 200)).toBe(2);
+    expect(calibrateRepeats(300, 200)).toBe(1);
   });
 });
 

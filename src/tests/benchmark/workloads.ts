@@ -103,10 +103,7 @@ export function estimateCopyBandwidthMiBps(bytes: number, durationMs: number): n
   return bytes / (1024 * 1024) / (durationMs / 1000);
 }
 
-export function verifyChecksum(workload: string, value: number): boolean {
-  if (!Object.prototype.hasOwnProperty.call(EXPECTED_CHECKSUMS, workload)) {
-    return false;
-  }
-  const expected = EXPECTED_CHECKSUMS[workload as keyof typeof EXPECTED_CHECKSUMS];
+export function verifyChecksum(workload: keyof typeof EXPECTED_CHECKSUMS, value: number): boolean {
+  const expected = EXPECTED_CHECKSUMS[workload];
   return expected === value;
 }

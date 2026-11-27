@@ -48,7 +48,7 @@ describe('verifyChecksum', () => {
   });
 
   it('rejects unknown workload names', () => {
-    expect(verifyChecksum('nope', 0)).toBe(false);
+    expect(verifyChecksum('nope' as keyof typeof EXPECTED_CHECKSUMS, 0)).toBe(false);
   });
 });
 
