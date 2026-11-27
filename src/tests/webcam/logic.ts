@@ -13,41 +13,24 @@ export interface LuminanceStats {
   readonly sampleCount: number;
 }
 
-export interface FrozenFrameResult {
-  readonly frozen: boolean;
-  readonly identicalCount: number;
-  readonly sampleCount: number;
-}
-
-export interface NearBlackOptions {
+export interface CoveredLensOptions {
   readonly luminanceThreshold?: number;
   readonly varianceThreshold?: number;
 }
 
-export type PixelBufferInput =
-  | Uint8ClampedArray
-  | Uint8Array
-  | { readonly data: Uint8ClampedArray | Uint8Array };
-
-export type FrozenFrameSample = Uint8ClampedArray | Uint8Array | number;
-
 const RED_WEIGHT = 0.2126;
 const GREEN_WEIGHT = 0.7152;
 const BLUE_WEIGHT = 0.0722;
-const DEFAULT_NEAR_BLACK_LUMINANCE = 10;
-
-function pixelData(input: PixelBufferInput): Uint8ClampedArray | Uint8Array {
-  if (ArrayBuffer.isView(input)) {
-    return input as Uint8ClampedArray | Uint8Array;
-  }
-  return (input as { readonly data: Uint8ClampedArray | Uint8Array }).data;
-}
+const DEFAULT_COVERED_LENS_LUMINANCE_THRESHOLD = 10;
+const DEFAULT_COVERED_LENS_VARIANCE_THRESHOLD = 100;
+const DEFAULT_STALL_TIMEOUT_MS = 1000;
+const DEFAULT_STATIC_EPSILON = 2;
+const DEFAULT_STATIC_FRAME_COUNT = 3;
 
 /**
  * Estimate a frame rate in frames per second from frame timestamps.
  *
- * Timestamps are expected to be in milliseconds, such as the `now` value passed
- * to `requestVideoFrameCallback` or values from `performance.now()`.
+ * Timestamps are expected to be in milliseconds.
  */
 export function estimateFps(timestamps: readonly number[]): number {
   if (timestamps.length < 2) {
@@ -72,13 +55,9 @@ export function estimateFps(timestamps: readonly number[]): number {
 }
 
 /**
- * Compute luminance statistics for an RGBA pixel buffer.
- *
- * The buffer is interpreted as groups of four bytes (red, green, blue, alpha).
- * Luminance uses the Rec. 709 luma coefficients. Alpha is ignored.
+ * Compute luminance statistics for an RGBA pixel buffer in one pass.
  */
-export function luminanceStats(input: PixelBufferInput): LuminanceStats {
-  const data = pixelData(input);
+export function luminanceStats(data: Uint8ClampedArray): LuminanceStats {
   const pixelCount = Math.floor(data.length / 4);
 
   if (pixelCount === 0) {
@@ -91,7 +70,9 @@ export function luminanceStats(input: PixelBufferInput): LuminanceStats {
     };
   }
 
-  let sum = 0;
+  let count = 0;
+  let mean = 0;
+  let squaredDeviationSum = 0;
   let min = 255;
   let max = 0;
 
@@ -103,7 +84,12 @@ export function luminanceStats(input: PixelBufferInput): LuminanceStats {
     const luminance =
       RED_WEIGHT * red + GREEN_WEIGHT * green + BLUE_WEIGHT * blue;
 
-    sum += luminance;
+    count += 1;
+    const delta = luminance - mean;
+    mean += delta / count;
+    const deltaAfterMean = luminance - mean;
+    squaredDeviationSum += delta * deltaAfterMean;
+
     if (luminance < min) {
       min = luminance;
     }
@@ -112,117 +98,121 @@ export function luminanceStats(input: PixelBufferInput): LuminanceStats {
     }
   }
 
-  const mean = sum / pixelCount;
-
-  let squaredDeviationSum = 0;
-  for (let index = 0; index < pixelCount; index += 1) {
-    const offset = index * 4;
-    const red = data[offset] as number;
-    const green = data[offset + 1] as number;
-    const blue = data[offset + 2] as number;
-    const luminance =
-      RED_WEIGHT * red + GREEN_WEIGHT * green + BLUE_WEIGHT * blue;
-    const deviation = luminance - mean;
-    squaredDeviationSum += deviation * deviation;
-  }
-
   return {
     mean,
-    variance: squaredDeviationSum / pixelCount,
+    variance: squaredDeviationSum / count,
     min,
     max,
-    sampleCount: pixelCount,
+    sampleCount: count,
   };
 }
 
 /**
- * Report whether a frame is near-black.
- *
- * A numeric second argument is treated as the luminance threshold. An object
- * may additionally supply a variance threshold.
+ * Report whether a frame looks like a covered lens: near-black and low variance.
  */
-export function isNearBlack(
+export function isCoveredLens(
   stats: LuminanceStats,
-  thresholdOrOptions?: number | NearBlackOptions,
+  options: CoveredLensOptions = {},
 ): boolean {
-  const options =
-    typeof thresholdOrOptions === 'number'
-      ? { luminanceThreshold: thresholdOrOptions }
-      : thresholdOrOptions ?? {};
-
   const luminanceThreshold =
-    options.luminanceThreshold ?? DEFAULT_NEAR_BLACK_LUMINANCE;
-  const nearBlack = stats.mean <= luminanceThreshold;
+    options.luminanceThreshold ?? DEFAULT_COVERED_LENS_LUMINANCE_THRESHOLD;
+  const varianceThreshold =
+    options.varianceThreshold ?? DEFAULT_COVERED_LENS_VARIANCE_THRESHOLD;
 
-  if (options.varianceThreshold === undefined) {
-    return nearBlack;
-  }
-
-  return nearBlack && stats.variance <= options.varianceThreshold;
+  return (
+    stats.mean <= luminanceThreshold &&
+    stats.variance <= varianceThreshold
+  );
 }
 
-function sameBytes(
-  left: Uint8ClampedArray | Uint8Array,
-  right: Uint8ClampedArray | Uint8Array,
+/**
+ * Report whether frame presentation has stalled.
+ */
+export function isFrameStalled(
+  timestamps: readonly number[],
+  now: number,
+  stallTimeoutMs: number = DEFAULT_STALL_TIMEOUT_MS,
 ): boolean {
-  if (left.length !== right.length) {
+  if (timestamps.length === 0) {
+    return true;
+  }
+
+  const last = timestamps[timestamps.length - 1] as number;
+
+  if (!Number.isFinite(last) || !Number.isFinite(now)) {
+    return true;
+  }
+
+  const timeout =
+    Number.isFinite(stallTimeoutMs) && stallTimeoutMs >= 0
+      ? stallTimeoutMs
+      : DEFAULT_STALL_TIMEOUT_MS;
+
+  return now - last > timeout;
+}
+
+/**
+ * Mean absolute luminance difference between two RGBA buffers.
+ */
+export function frameDifference(
+  a: Uint8ClampedArray,
+  b: Uint8ClampedArray,
+): number {
+  const pixelCountA = Math.floor(a.length / 4);
+  const pixelCountB = Math.floor(b.length / 4);
+
+  if (pixelCountA !== pixelCountB) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  if (pixelCountA === 0) {
+    return 0;
+  }
+
+  let sum = 0;
+
+  for (let index = 0; index < pixelCountA; index += 1) {
+    const offsetA = index * 4;
+    const offsetB = index * 4;
+    const luminanceA =
+      RED_WEIGHT * (a[offsetA] as number) +
+      GREEN_WEIGHT * (a[offsetA + 1] as number) +
+      BLUE_WEIGHT * (a[offsetA + 2] as number);
+    const luminanceB =
+      RED_WEIGHT * (b[offsetB] as number) +
+      GREEN_WEIGHT * (b[offsetB + 1] as number) +
+      BLUE_WEIGHT * (b[offsetB + 2] as number);
+
+    sum += Math.abs(luminanceA - luminanceB);
+  }
+
+  return sum / pixelCountA;
+}
+
+/**
+ * Report whether recent frame differences represent a static image.
+ */
+export function isStaticFrame(
+  differences: readonly number[],
+  epsilon: number = DEFAULT_STATIC_EPSILON,
+  requiredCount: number = DEFAULT_STATIC_FRAME_COUNT,
+): boolean {
+  const count =
+    Number.isInteger(requiredCount) && requiredCount > 0
+      ? requiredCount
+      : DEFAULT_STATIC_FRAME_COUNT;
+  const threshold = Number.isFinite(epsilon) ? epsilon : DEFAULT_STATIC_EPSILON;
+
+  if (differences.length < count) {
     return false;
   }
 
-  for (let index = 0; index < left.length; index += 1) {
-    if (left[index] !== right[index]) {
+  for (let index = differences.length - count; index < differences.length; index += 1) {
+    const difference = differences[index] as number;
+    if (!Number.isFinite(difference) || difference > threshold) {
       return false;
     }
   }
 
   return true;
-}
-
-/**
- * Detect whether the trailing samples represent a frozen frame.
- *
- * Buffers are compared byte-for-byte. Numbers are compared by value, which lets
- * callers use a cheap per-frame fingerprint such as mean luminance.
- */
-export function detectFrozenFrames(
-  frames: readonly FrozenFrameSample[],
-  minimumIdentical = 3,
-): FrozenFrameResult {
-  const sampleCount = frames.length;
-  const required =
-    Number.isInteger(minimumIdentical) && minimumIdentical > 0
-      ? minimumIdentical
-      : 1;
-
-  if (sampleCount === 0) {
-    return { frozen: false, identicalCount: 0, sampleCount: 0 };
-  }
-
-  const last = frames[sampleCount - 1] as FrozenFrameSample;
-  let identicalCount = 1;
-
-  for (let index = sampleCount - 2; index >= 0; index -= 1) {
-    const candidate = frames[index] as FrozenFrameSample;
-    const identical =
-      typeof candidate === 'number' && typeof last === 'number'
-        ? candidate === last
-        : ArrayBuffer.isView(candidate) &&
-          ArrayBuffer.isView(last) &&
-          sameBytes(
-            candidate as Uint8ClampedArray | Uint8Array,
-            last as Uint8ClampedArray | Uint8Array,
-          );
-
-    if (!identical) {
-      break;
-    }
-
-    identicalCount += 1;
-  }
-
-  return {
-    frozen: sampleCount >= required && identicalCount >= required,
-    identicalCount,
-    sampleCount,
-  };
 }

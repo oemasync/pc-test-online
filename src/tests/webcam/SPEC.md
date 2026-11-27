@@ -50,8 +50,9 @@ about a covered lens or frozen frame.
    facing mode, and supported ranges.
 4. Allow mirroring the preview horizontally.
 5. Allow selecting another video input and restarting the stream.
-6. Sample frames and warn when the average luminance is near black or when the
-   last N frames are identical.
+6. Sample frames and warn when the frame looks like a covered lens (near-black
+   mean and low variance), when presentation stalls (no new frame within the
+   timeout), or when consecutive frame differences stay below epsilon.
 7. Capture the current frame to a canvas and download it as PNG.
 8. Stop all tracks and cancel frame callbacks on unmount.
 
@@ -62,6 +63,20 @@ about a covered lens or frozen frame.
 - Fail: camera permission is denied, no video track is available, or the
   measured frame rate remains zero after the sampling window.
 - Skip: the browser does not support `getUserMedia` or no camera is present.
+
+## Pure logic tested
+
+- `estimateFps(timestamps)`: frames per second from millisecond timestamps.
+- `luminanceStats(data)`: single-pass mean, population variance, min, max, and
+  sample count over an RGBA buffer.
+- `isCoveredLens(stats, options)`: true when mean luminance is at most 10 and
+  variance is at most 100 by default.
+- `isFrameStalled(timestamps, now, stallTimeoutMs)`: true when no frame has been
+  presented within 1000 ms by default.
+- `frameDifference(a, b)`: mean absolute luminance difference between two RGBA
+  buffers.
+- `isStaticFrame(differences, epsilon, requiredCount)`: true when the last 3
+  differences are at most 2 by default.
 
 ## Recorded details
 
@@ -82,6 +97,8 @@ about a covered lens or frozen frame.
 - `mirrored`: boolean
 - `luminanceMean`: number
 - `luminanceVariance`: number
-- `nearBlack`: boolean
+- `coveredLens`: boolean
+- `frameStalled`: boolean
+- `staticFrame`: boolean
 - `frozenFrame`: boolean
 - `snapshotCaptured`: boolean

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  detectFrozenFrames,
   estimateFps,
-  isNearBlack,
+  frameDifference,
+  isCoveredLens,
+  isFrameStalled,
+  isStaticFrame,
   luminanceStats,
 } from '../logic';
 
@@ -85,84 +87,106 @@ describe('luminanceStats', () => {
       5,
     );
   });
+});
 
-  it('accepts an object wrapping pixel data', () => {
-    const data = new Uint8ClampedArray([255, 0, 0, 255]);
-    expect(luminanceStats({ data }).sampleCount).toBe(1);
+describe('isCoveredLens', () => {
+  it('detects a black, low-variance frame with defaults', () => {
+    const stats = luminanceStats(new Uint8ClampedArray([0, 0, 0, 255]));
+    expect(isCoveredLens(stats)).toBe(true);
+  });
+
+  it('rejects a bright frame', () => {
+    const stats = luminanceStats(new Uint8ClampedArray([255, 255, 255, 255]));
+    expect(isCoveredLens(stats)).toBe(false);
+  });
+
+  it('rejects a dark but noisy frame', () => {
+    const stats = {
+      mean: 5,
+      variance: 500,
+      min: 0,
+      max: 40,
+      sampleCount: 2,
+    };
+    expect(isCoveredLens(stats)).toBe(false);
+  });
+
+  it('honors explicit thresholds', () => {
+    const stats = {
+      mean: 20,
+      variance: 50,
+      min: 0,
+      max: 40,
+      sampleCount: 2,
+    };
+    expect(isCoveredLens(stats, { luminanceThreshold: 25, varianceThreshold: 100 })).toBe(true);
+    expect(isCoveredLens(stats, { luminanceThreshold: 10, varianceThreshold: 100 })).toBe(false);
   });
 });
 
-describe('isNearBlack', () => {
-  it('uses the default luminance threshold', () => {
-    expect(isNearBlack({ mean: 0, variance: 0, min: 0, max: 0, sampleCount: 1 })).toBe(true);
-    expect(isNearBlack({ mean: 10, variance: 0, min: 10, max: 10, sampleCount: 1 })).toBe(true);
-    expect(isNearBlack({ mean: 11, variance: 0, min: 11, max: 11, sampleCount: 1 })).toBe(false);
+describe('isFrameStalled', () => {
+  it('is true when there are no frames', () => {
+    expect(isFrameStalled([], 1000)).toBe(true);
   });
 
-  it('accepts a numeric threshold', () => {
-    const stats = { mean: 20, variance: 0, min: 20, max: 20, sampleCount: 1 };
-    expect(isNearBlack(stats, 20)).toBe(true);
-    expect(isNearBlack(stats, 19)).toBe(false);
+  it('is false when the last frame is recent', () => {
+    expect(isFrameStalled([950], 1000, 100)).toBe(false);
   });
 
-  it('can require low variance', () => {
-    const stats = { mean: 5, variance: 100, min: 0, max: 20, sampleCount: 2 };
-    expect(isNearBlack(stats, { luminanceThreshold: 10, varianceThreshold: 50 })).toBe(false);
-    expect(isNearBlack(stats, { luminanceThreshold: 10, varianceThreshold: 200 })).toBe(true);
+  it('is true when the last frame is older than the timeout', () => {
+    expect(isFrameStalled([0], 2000, 1000)).toBe(true);
+  });
+
+  it('uses the default timeout', () => {
+    expect(isFrameStalled([0], 1500)).toBe(true);
+    expect(isFrameStalled([1400], 1500)).toBe(false);
   });
 });
 
-describe('detectFrozenFrames', () => {
-  it('returns false with no samples', () => {
-    expect(detectFrozenFrames([])).toEqual({
-      frozen: false,
-      identicalCount: 0,
-      sampleCount: 0,
-    });
+describe('frameDifference', () => {
+  it('is zero for identical frames', () => {
+    const frame = new Uint8ClampedArray([10, 20, 30, 255, 40, 50, 60, 255]);
+    expect(frameDifference(frame, frame.slice())).toBe(0);
   });
 
-  it('counts one non-frozen sample', () => {
-    const frame = new Uint8ClampedArray([1, 2, 3, 4]);
-    expect(detectFrozenFrames([frame])).toMatchObject({
-      frozen: false,
-      identicalCount: 1,
-      sampleCount: 1,
-    });
+  it('measures luminance differences', () => {
+    const a = new Uint8ClampedArray([0, 0, 0, 255]);
+    const b = new Uint8ClampedArray([255, 255, 255, 255]);
+    expect(frameDifference(a, b)).toBeCloseTo(255, 5);
   });
 
-  it('detects three identical byte buffers', () => {
-    const frame = new Uint8ClampedArray([1, 2, 3, 4]);
-    const result = detectFrozenFrames([frame, frame.slice(), frame.slice()], 3);
-
-    expect(result.frozen).toBe(true);
-    expect(result.identicalCount).toBe(3);
+  it('is small for noisy but live frames', () => {
+    const base = new Uint8ClampedArray([100, 100, 100, 255]);
+    const noisy = new Uint8ClampedArray([102, 99, 101, 255]);
+    expect(frameDifference(base, noisy)).toBeLessThan(2);
   });
 
-  it('does not count a changed trailing frame', () => {
-    const first = new Uint8ClampedArray([1, 2, 3, 4]);
-    const changed = new Uint8ClampedArray([1, 2, 3, 5]);
-    const result = detectFrozenFrames([first, first.slice(), changed], 3);
+  it('returns infinity for different-sized buffers', () => {
+    const a = new Uint8ClampedArray([0, 0, 0, 255]);
+    const b = new Uint8ClampedArray([0, 0, 0, 255, 0, 0, 0, 255]);
+    expect(frameDifference(a, b)).toBe(Number.POSITIVE_INFINITY);
+  });
+});
 
-    expect(result.frozen).toBe(false);
-    expect(result.identicalCount).toBe(1);
+describe('isStaticFrame', () => {
+  it('is false without enough samples', () => {
+    expect(isStaticFrame([0.1, 0.2])).toBe(false);
   });
 
-  it('stops counting at the first differing older frame', () => {
-    const frame = new Uint8ClampedArray([1, 2, 3, 4]);
-    const other = new Uint8ClampedArray([9, 9, 9, 9]);
-    const result = detectFrozenFrames([other, frame, frame], 3);
-
-    expect(result.frozen).toBe(false);
-    expect(result.identicalCount).toBe(2);
+  it('detects a static sequence', () => {
+    expect(isStaticFrame([5, 0.1, 0.2, 0.1])).toBe(true);
   });
 
-  it('supports numeric fingerprints', () => {
-    expect(detectFrozenFrames([42, 42, 42], 2).frozen).toBe(true);
-    expect(detectFrozenFrames([42, 41, 42], 2).frozen).toBe(false);
+  it('rejects a noisy but live sequence', () => {
+    expect(isStaticFrame([0.1, 2.5, 3.1, 2.8], 2, 3)).toBe(false);
   });
 
-  it('requires at least the configured number of samples', () => {
-    const frame = new Uint8ClampedArray([1, 2, 3, 4]);
-    expect(detectFrozenFrames([frame, frame], 3).frozen).toBe(false);
+  it('only checks the trailing samples', () => {
+    expect(isStaticFrame([10, 10, 0.1, 0.2, 0.1], 2, 3)).toBe(true);
+  });
+
+  it('honors explicit epsilon and count', () => {
+    expect(isStaticFrame([0.5, 0.5, 0.5], 0.25, 3)).toBe(false);
+    expect(isStaticFrame([0.5, 0.5, 0.5], 1, 2)).toBe(true);
   });
 });
