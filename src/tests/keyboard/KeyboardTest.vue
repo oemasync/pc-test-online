@@ -1,13 +1,31 @@
 <template>
-  <TestLayout :test-id="id" :title="t('tests.keyboard.name')">
-    <template #instructions>{{ t('tests.keyboard.instructions') }}</template>
-    <div class="keyboard-test" tabindex="0">
+  <TestLayout
+    :test-id="id"
+    :title="t('tests.keyboard.name')"
+  >
+    <template #instructions>
+      {{ t('tests.keyboard.instructions') }}
+    </template>
+    <div
+      class="keyboard-test"
+      tabindex="0"
+    >
       <div class="keyboard-test__stats">
-        <StatTile :label="t('tests.keyboard.testedLabel')" :value="`${state.tested.size} / ${total}`" />
-        <StatTile :label="t('tests.keyboard.rolloverLabel')" :value="state.maxSimultaneous" />
+        <StatTile
+          :label="t('tests.keyboard.testedLabel')"
+          :value="`${state.tested.size} / ${total}`"
+        />
+        <StatTile
+          :label="t('tests.keyboard.rolloverLabel')"
+          :value="state.maxSimultaneous"
+        />
       </div>
       <div class="keyboard">
-        <div v-for="(row, ri) in KEYBOARD_LAYOUT" :key="ri" class="keyboard__row">
+        <div
+          v-for="(row, ri) in KEYBOARD_LAYOUT"
+          :key="ri"
+          class="keyboard__row"
+        >
           <div
             v-for="key in row"
             :key="key.code"
@@ -24,7 +42,10 @@
       <div class="keyboard-test__recent">
         <h3>{{ t('tests.keyboard.recentLabel') }}</h3>
         <ul>
-          <li v-for="(e, i) in state.recentEvents" :key="i">
+          <li
+            v-for="(e, i) in state.recentEvents"
+            :key="i"
+          >
             {{ e.type }} {{ e.code }}
           </li>
         </ul>

@@ -11,19 +11,34 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="m in modules" :key="m.id">
+          <tr
+            v-for="m in modules"
+            :key="m.id"
+          >
             <td>{{ t(m.titleKey) }}</td>
             <td>{{ t(`status.${status(m.id)}`) }}</td>
-            <td>{{ formatDuration(elapsed(m.id)) }}</td>
+            <td>{{ formatDuration(elapsedValue(m.id)) }}</td>
           </tr>
         </tbody>
       </table>
       <div class="summary__actions">
-        <button type="button" @click="exportJson()">{{ t('buttons.export') }}</button>
-        <button type="button" @click="print">{{ t('buttons.print') }}</button>
+        <button
+          type="button"
+          @click="exportJson()"
+        >
+          {{ t('buttons.export') }}
+        </button>
+        <button
+          type="button"
+          @click="print"
+        >
+          {{ t('buttons.print') }}
+        </button>
       </div>
     </div>
-    <p v-else>{{ t('summary.empty') }}</p>
+    <p v-else>
+      {{ t('summary.empty') }}
+    </p>
   </div>
 </template>
 
@@ -31,19 +46,19 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getTestModules } from '@/core/registry'
-import { resultsStore } from '@/core/results'
+import { elapsed, getAllResults, getStatus } from '@/core/results'
 import { exportJson } from '@/core/report'
 
 const { t } = useI18n()
 const modules = getTestModules()
 
-const hasResults = computed(() => Object.keys(resultsStore.getAllResults()).length > 0)
+const hasResults = computed(() => Object.keys(getAllResults()).length > 0)
 
 function status(id: string) {
-  return resultsStore.getStatus(id)
+  return getStatus(id)
 }
-function elapsed(id: string) {
-  return resultsStore.elapsed(id)
+function elapsedValue(id: string) {
+  return elapsed(id)
 }
 function formatDuration(ms: number): string {
   return (ms / 1000).toFixed(2) + 's'

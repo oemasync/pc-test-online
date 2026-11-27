@@ -4,7 +4,11 @@
     :value="modelValue"
     @change="onChange"
   >
-    <option v-for="d in devices" :key="d.deviceId" :value="d.deviceId">
+    <option
+      v-for="d in devices"
+      :key="d.deviceId"
+      :value="d.deviceId"
+    >
       {{ d.label || d.deviceId }}
     </option>
   </select>

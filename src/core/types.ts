@@ -1,3 +1,5 @@
+import type { Component } from 'vue'
+
 export type TestStatus = 'pending' | 'running' | 'passed' | 'failed' | 'skipped'
 
 export interface TestResult {
@@ -13,9 +15,10 @@ export interface TestResult {
 export interface TestModule {
   id: string
   order: number
+  // A single emoji (or short text) rendered as-is in the overview grid card.
   icon: string
   titleKey: string
   descriptionKey: string
-  component: () => Promise<unknown>
+  component: () => Promise<Component | { default: Component }>
   isSupported?: () => boolean
 }

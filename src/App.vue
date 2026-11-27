@@ -1,19 +1,46 @@
 <template>
-  <div class="app" :data-theme="theme">
+  <div
+    class="app"
+    :data-theme="theme"
+  >
     <header class="app__header">
       <div class="app__header-left">
-        <a class="app__link" href="https://github.com/oemasync/pc-test-online" target="_blank" rel="noopener noreferrer">
+        <a
+          class="app__link"
+          href="https://github.com/oemasync/pc-test-online"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           {{ t('header.source') }}
         </a>
-        <a class="app__link" href="https://buymeacoffee.com/omiinaya" target="_blank" rel="noopener noreferrer">
+        <a
+          class="app__link"
+          href="https://buymeacoffee.com/omiinaya"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           {{ t('header.coffee') }}
         </a>
       </div>
       <div class="app__header-right">
-        <select v-model="locale" class="app__lang" aria-label="language">
-          <option v-for="l in locales" :key="l" :value="l">{{ l }}</option>
+        <select
+          v-model="locale"
+          class="app__lang"
+          aria-label="language"
+        >
+          <option
+            v-for="l in locales"
+            :key="l"
+            :value="l"
+          >
+            {{ l }}
+          </option>
         </select>
-        <button type="button" class="app__theme" @click="toggleTheme">
+        <button
+          type="button"
+          class="app__theme"
+          @click="toggleTheme"
+        >
           {{ t('theme.toggle') }}
         </button>
       </div>
@@ -22,14 +49,44 @@
     <div class="app__body">
       <aside class="app__sidebar app__sidebar--left">
         <ul>
-          <li v-for="m in modules" :key="m.id">
-            <router-link :to="`/test/${m.id}`" class="app__test-link">
-              <StatusLight :status="status(m.id)" />
-              <span>{{ t(m.titleKey) }}</span>
-            </router-link>
+          <li
+            v-for="m in modules"
+            :key="m.id"
+          >
+            <template v-if="supported(m)">
+              <router-link
+                :to="`/test/${m.id}`"
+                class="app__test-link"
+              >
+                <StatusLight
+                  :status="status(m.id)"
+                  :data-testid="`status-light-${m.id}`"
+                  :data-status="status(m.id)"
+                />
+                <span>{{ t(m.titleKey) }}</span>
+              </router-link>
+            </template>
+            <template v-else>
+              <button
+                type="button"
+                class="app__test-link"
+                @click="skip(m.id)"
+              >
+                <StatusLight
+                  :status="status(m.id)"
+                  :data-testid="`status-light-${m.id}`"
+                  :data-status="status(m.id)"
+                />
+                <span>{{ t(m.titleKey) }}</span>
+                <span class="app__unsupported">{{ t('buttons.unsupported') }}</span>
+              </button>
+            </template>
           </li>
           <li>
-            <router-link to="/summary" class="app__test-link">Summary</router-link>
+            <router-link
+              to="/summary"
+              class="app__test-link"
+            >Summary</router-link>
           </li>
         </ul>
       </aside>
@@ -39,7 +96,11 @@
       </main>
 
       <aside class="app__sidebar app__sidebar--right">
-        <div v-for="m in modules" :key="m.id" class="app__timer">
+        <div
+          v-for="m in modules"
+          :key="m.id"
+          class="app__timer"
+        >
           <span>{{ t(m.titleKey) }}</span>
           <span class="app__timer-value">{{ formatElapsed(m.id) }}</span>
         </div>
@@ -47,8 +108,20 @@
     </div>
 
     <footer class="app__footer">
-      <button type="button" @click="reset">{{ t('buttons.reset') }}</button>
-      <button type="button" @click="exportReport">{{ t('buttons.export') }}</button>
+      <button
+        type="button"
+        data-testid="reset-button"
+        @click="reset"
+      >
+        {{ t('buttons.reset') }}
+      </button>
+      <button
+        type="button"
+        data-testid="export-button"
+        @click="exportReport"
+      >
+        {{ t('buttons.export') }}
+      </button>
     </footer>
   </div>
 </template>
@@ -57,7 +130,8 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getTestModules } from '@/core/registry'
-import { resultsStore } from '@/core/results'
+import type { TestModule } from '@/core/types'
+import { elapsed, getStatus, reset as resetStore, skip } from '@/core/results'
 import { exportJson } from '@/core/report'
 import StatusLight from '@/ui/StatusLight.vue'
 
@@ -97,16 +171,20 @@ function toggleTheme(): void {
 }
 
 function status(id: string) {
-  return resultsStore.getStatus(id)
+  return getStatus(id)
+}
+
+function supported(m: TestModule): boolean {
+  return m.isSupported?.() ?? true
 }
 
 function formatElapsed(id: string): string {
   void tick.value
-  return (resultsStore.elapsed(id) / 1000).toFixed(2) + 's'
+  return (elapsed(id) / 1000).toFixed(2) + 's'
 }
 
 function reset(): void {
-  resultsStore.reset()
+  resetStore()
 }
 
 function exportReport(): void {

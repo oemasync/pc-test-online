@@ -18,7 +18,10 @@
     "skip": "Skip",
     "reset": "Reset",
     "export": "Export",
-    "print": "Print"
+    "print": "Print",
+    "unsupported": "Not supported in this browser",
+    "confirm": "Confirm",
+    "retry": "Retest"
   },
   "status": {
     "pending": "Pending",

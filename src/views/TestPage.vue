@@ -2,8 +2,14 @@
   <div v-if="module">
     <component :is="component" />
     <nav class="test-nav">
-      <router-link v-if="prev" :to="`/test/${prev.id}`">Prev</router-link>
-      <router-link v-if="next" :to="`/test/${next.id}`">Next</router-link>
+      <router-link
+        v-if="prev"
+        :to="`/test/${prev.id}`"
+      >Prev</router-link>
+      <router-link
+        v-if="next"
+        :to="`/test/${next.id}`"
+      >Next</router-link>
     </nav>
   </div>
   <div v-else>
@@ -13,10 +19,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getTestModule, getTestModules } from '@/core/registry'
+import { getStatus, start } from '@/core/results'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -32,12 +39,20 @@ watch(
   async (m) => {
     component.value = null
     if (m) {
+      if (getStatus(m.id) === 'pending') start(m.id)
       const loaded = await m.component()
       component.value = (loaded as { default?: unknown }).default ?? loaded
     }
   },
   { immediate: true },
 )
+
+onMounted(() => {
+  const id = String(route.params.id)
+  if (getTestModule(id) && getStatus(id) === 'pending') {
+    start(id)
+  }
+})
 </script>
 
 <style scoped>

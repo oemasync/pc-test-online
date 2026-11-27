@@ -13,7 +13,7 @@ export function buildReport(): Report {
   return {
     appVersion: pkg.version,
     timestamp: new Date().toISOString(),
-    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+    userAgent: navigator.userAgent,
     results: Object.values(getAllResults()),
   }
 }

@@ -1,5 +1,9 @@
 <template>
-  <div v-if="kind" class="permission-prompt" role="alert">
+  <div
+    v-if="kind"
+    class="permission-prompt"
+    role="alert"
+  >
     <p>{{ message }}</p>
   </div>
 </template>

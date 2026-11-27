@@ -16,6 +16,10 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html'],
       include: ['src/**/*.ts', 'src/**/*.vue'],
+      thresholds: {
+        'src/core/**': { lines: 90, branches: 90, functions: 90, statements: 90 },
+        'src/lib/**': { lines: 90, branches: 90, functions: 90, statements: 90 },
+      },
     },
   },
   build: {

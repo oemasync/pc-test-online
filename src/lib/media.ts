@@ -10,34 +10,32 @@ export type MediaErrorKind =
   | 'unknown'
 
 export function mapMediaError(err: unknown): MediaErrorKind {
-  if (err instanceof DOMException) {
-    switch (err.name) {
-      case 'NotAllowedError':
-      case 'PermissionDeniedError':
-        return 'denied'
-      case 'NotFoundError':
-      case 'DevicesNotFoundError':
-        return 'not-found'
-      case 'NotReadableError':
-      case 'TrackStartError':
-        return 'in-use'
-      case 'OverconstrainedError':
-      case 'ConstraintNotSatisfiedError':
-        return 'overconstrained'
-      case 'SecurityError':
-        return 'insecure-context'
-      default:
-        return 'unknown'
-    }
+  const name =
+    err && typeof err === 'object' && 'name' in err && typeof (err as { name: unknown }).name === 'string'
+      ? (err as { name: string }).name
+      : ''
+  switch (name) {
+    case 'NotAllowedError':
+      return 'denied'
+    case 'NotFoundError':
+      return 'not-found'
+    case 'NotReadableError':
+    case 'AbortError':
+      return 'in-use'
+    case 'OverconstrainedError':
+      return 'overconstrained'
+    case 'SecurityError':
+      return 'insecure-context'
+    default:
+      return 'unknown'
   }
-  return 'unknown'
 }
 
 export async function requestMediaStream(
   constraints: MediaStreamConstraints,
 ): Promise<{ stream: MediaStream | null; error: MediaErrorKind | null }> {
   if (!navigator.mediaDevices?.getUserMedia) {
-    if (typeof window !== 'undefined' && !window.isSecureContext) {
+    if (typeof window !== 'undefined' && window.isSecureContext === false) {
       return { stream: null, error: 'insecure-context' }
     }
     return { stream: null, error: 'unsupported' }
