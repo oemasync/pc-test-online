@@ -59,3 +59,6 @@ output/
 *.iso
 
 mmit-qa-tools/frontend/stats.html
+
+test-results/
+playwright-report/
