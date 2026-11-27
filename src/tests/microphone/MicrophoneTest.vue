@@ -129,7 +129,7 @@ const channelCount = ref(0);
 const deviceId = ref('');
 const groupId = ref('');
 
-const recorded = ref(false);
+const recorded = ref(false)
 const mimeType = ref('');
 
 const rmsHistory: SilenceSample[] = [];
