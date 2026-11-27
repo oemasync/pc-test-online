@@ -50,13 +50,13 @@ const readout = computed(() => `${props.dbfs.toFixed(1)} dBFS`);
 .level-meter__bar {
     width: 100%;
     height: 1rem;
-    background: var(--border, #ccc);
+    background: var(--border);
     border-radius: 4px;
     overflow: hidden;
 }
 .level-meter__fill {
     height: 100%;
-    background: var(--color-accent, #22c55e);
+    background: var(--color-accent);
     transition: width 80ms linear;
 }
 .level-meter__readout {

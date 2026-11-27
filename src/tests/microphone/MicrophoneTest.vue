@@ -174,16 +174,20 @@ function teardownGraph(): void {
     if (sourceNode.value) {
         try {
             sourceNode.value.disconnect();
-        } catch {
-            // ignore
+        } catch (err) {
+            if (!(err instanceof DOMException) || err.name !== 'InvalidStateError') {
+                console.warn('microphone: source disconnect failed', err);
+            }
         }
         sourceNode.value = null;
     }
     if (analyser.value) {
         try {
             analyser.value.disconnect();
-        } catch {
-            // ignore
+        } catch (err) {
+            if (!(err instanceof DOMException) || err.name !== 'InvalidStateError') {
+                console.warn('microphone: analyser disconnect failed', err);
+            }
         }
         analyser.value = null;
     }
@@ -301,7 +305,7 @@ onBeforeUnmount(() => {
     display: block;
 }
 .microphone-test__warning {
-    color: var(--color-danger, #ef4444);
+    color: var(--color-danger);
 }
 .microphone-test__applied {
     font-size: 0.85rem;

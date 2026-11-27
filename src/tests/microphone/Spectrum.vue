@@ -44,11 +44,15 @@ function draw(): void {
         return;
     }
 
+    const rootStyle = getComputedStyle(wave);
+    const bg = rootStyle.getPropertyValue('--bg').trim() || rootStyle.getPropertyValue('--surface').trim();
+    const accent = rootStyle.getPropertyValue('--color-accent').trim();
+
     const timeData = new Float32Array(analyser.fftSize);
     analyser.getFloatTimeDomainData(timeData);
-    wctx.fillStyle = '#111';
+    wctx.fillStyle = bg;
     wctx.fillRect(0, 0, wave.width, wave.height);
-    wctx.strokeStyle = '#22c55e';
+    wctx.strokeStyle = accent;
     wctx.beginPath();
     for (let i = 0; i < timeData.length; i += 1) {
         const x = (i / timeData.length) * wave.width;
@@ -60,10 +64,10 @@ function draw(): void {
 
     const freqData = new Uint8Array(analyser.frequencyBinCount);
     analyser.getByteFrequencyData(freqData);
-    fctx.fillStyle = '#111';
+    fctx.fillStyle = bg;
     fctx.fillRect(0, 0, freq.width, freq.height);
     const barWidth = freq.width / freqData.length;
-    fctx.fillStyle = '#3b82f6';
+    fctx.fillStyle = accent;
     for (let i = 0; i < freqData.length; i += 1) {
         const h = ((freqData[i] as number) / 255) * freq.height;
         fctx.fillRect(i * barWidth, freq.height - h, barWidth - 1, h);
@@ -90,7 +94,7 @@ onBeforeUnmount(() => {
 .spectrum__canvas {
     width: 100%;
     height: 80px;
-    background: #111;
+    background: var(--bg);
     border-radius: 4px;
 }
 </style>

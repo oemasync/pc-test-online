@@ -21,6 +21,13 @@
         {{ t('tests.microphone.playLabel') }}
       </button>
     </div>
+    <p
+      v-if="recorderError"
+      class="recorder__error"
+      role="alert"
+    >
+      {{ recorderError }}
+    </p>
     <audio
       v-if="audioUrl"
       ref="audioEl"
@@ -48,6 +55,7 @@ const { t } = useI18n();
 const recording = ref(false);
 const audioUrl = ref<string | null>(null);
 const mimeType = ref('');
+const recorderError = ref('');
 let recorder: MediaRecorder | null = null;
 const chunks: Blob[] = [];
 let audioEl = ref<HTMLAudioElement | null>(null);
@@ -75,11 +83,13 @@ function toggleRecord(): void {
     if (!props.stream) return;
     const type = pickMimeType();
     mimeType.value = type;
+    recorderError.value = '';
     try {
         recorder = type
             ? new MediaRecorder(props.stream, { mimeType: type })
             : new MediaRecorder(props.stream);
-    } catch {
+    } catch (err) {
+        recorderError.value = err instanceof Error ? err.message : String(err);
         recorder = new MediaRecorder(props.stream);
     }
     chunks.length = 0;
