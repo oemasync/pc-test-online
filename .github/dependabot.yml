@@ -1,81 +1,40 @@
 version: 2
 updates:
-    # Root dependencies (monorepo root)
-    - package-ecosystem: 'npm'
-      directory: '/'
-      schedule:
-          interval: 'weekly'
-          day: 'monday'
-          time: '00:00'
-      open-pull-requests-limit: 10
-      groups:
-          dependencies:
-              patterns:
-                  - '*'
-      commit-message:
-          prefix: 'chore(root):'
-          include: 'scope'
+  # Root npm dependencies (single-package app)
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '00:00'
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types:
+          - 'minor'
+          - 'patch'
+    commit-message:
+      prefix: 'chore(deps):'
+      include: 'scope'
 
-    # Frontend dependencies
-    - package-ecosystem: 'npm'
-      directory: '/frontend'
-      schedule:
-          interval: 'weekly'
-          day: 'monday'
-          time: '00:00'
-      open-pull-requests-limit: 10
-      groups:
-          dependencies:
-              patterns:
-                  - '*'
-      commit-message:
-          prefix: 'chore(frontend):'
-          include: 'scope'
+  # GitHub Actions
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '00:00'
+    commit-message:
+      prefix: 'chore(actions):'
+      include: 'scope'
 
-    # Backend dependencies
-    - package-ecosystem: 'npm'
-      directory: '/backend'
-      schedule:
-          interval: 'weekly'
-          day: 'monday'
-          time: '00:00'
-      open-pull-requests-limit: 10
-      groups:
-          dependencies:
-              patterns:
-                  - '*'
-      commit-message:
-          prefix: 'chore(backend):'
-          include: 'scope'
-
-    # Docker base images (frontend and backend)
-    - package-ecosystem: 'docker'
-      directory: '/frontend'
-      schedule:
-          interval: 'weekly'
-          day: 'monday'
-          time: '00:00'
-      commit-message:
-          prefix: 'chore(docker-frontend):'
-          include: 'scope'
-
-    - package-ecosystem: 'docker'
-      directory: '/backend'
-      schedule:
-          interval: 'weekly'
-          day: 'monday'
-          time: '00:00'
-      commit-message:
-          prefix: 'chore(docker-backend):'
-          include: 'scope'
-
-    # GitHub Actions
-    - package-ecosystem: 'github-actions'
-      directory: '/'
-      schedule:
-          interval: 'weekly'
-          day: 'monday'
-          time: '00:00'
-      commit-message:
-          prefix: 'chore(actions):'
-          include: 'scope'
+  # Docker base images (root Dockerfile)
+  - package-ecosystem: 'docker'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '00:00'
+    commit-message:
+      prefix: 'chore(docker):'
+      include: 'scope'

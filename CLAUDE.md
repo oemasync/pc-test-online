@@ -1,9 +1,5 @@
 # pc-test-online — Claude Code Quickstart
 
-**First, read [AGENTS.md](./AGENTS.md)**.
+**First, read [AGENTS.md](./AGENTS.md).**
 
-## One-Line Setup
-See SETUP.md for step-by-step instructions.
-
-## Structure
-Check README.md and AGENTS.md for project layout.
+SETUP.md has been removed; see README.md for setup.
