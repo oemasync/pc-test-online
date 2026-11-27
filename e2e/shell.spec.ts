@@ -2,24 +2,25 @@ import { test, expect } from '@playwright/test'
 
 test('shell flow', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByText('Keyboard Test')).toBeVisible()
+  const keyboardLink = page.locator('.overview__title', { hasText: 'Keyboard Test' })
+  await expect(keyboardLink).toBeVisible()
 
-  await page.getByText('Keyboard Test').click()
+  await keyboardLink.click()
   await expect(page).toHaveURL(/\/test\/keyboard/)
 
-  const countBefore = await page.getByText(/\d+ \/ \d+/).textContent()
+  const counter = page.getByText(/\d+ \/ \d+/)
+  const countBefore = await counter.textContent()
   await page.keyboard.press('KeyA')
-  await expect(page.getByText(/\d+ \/ \d+/)).not.toHaveText(countBefore ?? '')
+  await expect(counter).not.toHaveText(countBefore ?? '')
 
   await page.getByRole('button', { name: 'Pass' }).click()
+  await expect(page.locator('.app__sidebar--left .status-light--passed')).toBeVisible()
 
-  // sidebar light passed: check status light? At least summary
   await page.goto('/summary')
-  await expect(page.getByText('Passed')).toBeVisible()
+  await expect(page.locator('main').getByText('Passed')).toBeVisible()
 
-  // Reset clears
   await page.goto('/')
   await page.getByRole('button', { name: 'Reset' }).click()
   await page.goto('/summary')
-  await expect(page.getByText('No tests run yet.')).toBeVisible()
+  await expect(page.locator('main').getByText('No tests run yet.')).toBeVisible()
 })
