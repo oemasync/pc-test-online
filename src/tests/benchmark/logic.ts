@@ -4,9 +4,10 @@
 export interface RunSummary {
   count: number;
   median: number;
-  stddev: number;
+  stddev: number; // sample stddev (n-1)
   min: number;
   max: number;
+  partial: boolean;
 }
 
 export type SchedulerStatus = 'idle' | 'running' | 'completed' | 'aborted' | 'failed';
@@ -39,19 +40,20 @@ export function median(values: readonly number[]): number {
   return (sorted[mid - 1]! + sorted[mid]!) / 2;
 }
 
+// Sample standard deviation (Bessel's correction, n-1). Used for run statistics.
 export function stddev(values: readonly number[]): number {
   if (values.length <= 1) {
     return 0;
   }
   const mean = values.reduce((acc, v) => acc + v, 0) / values.length;
   const variance =
-    values.reduce((acc, v) => acc + (v - mean) * (v - mean), 0) / values.length;
+    values.reduce((acc, v) => acc + (v - mean) * (v - mean), 0) / (values.length - 1);
   return Math.sqrt(variance);
 }
 
-export function summarizeRuns(values: readonly number[]): RunSummary {
+export function summarizeRuns(values: readonly number[], partial = false): RunSummary {
   if (values.length === 0) {
-    return { count: 0, median: 0, stddev: 0, min: 0, max: 0 };
+    return { count: 0, median: 0, stddev: 0, min: 0, max: 0, partial };
   }
   const sorted = [...values].sort((a, b) => a - b);
   return {
@@ -60,7 +62,34 @@ export function summarizeRuns(values: readonly number[]): RunSummary {
     stddev: stddev(values),
     min: sorted[0]!,
     max: sorted[sorted.length - 1]!,
+    partial,
   };
+}
+
+export function singleThreadScore(workUnits: number, durationMs: number): number {
+  if (durationMs <= 0) {
+    return 0;
+  }
+  return workUnits / (durationMs / 1000);
+}
+
+export function multiThreadThroughput(totalWorkUnits: number, wallClockMs: number): number {
+  if (wallClockMs <= 0) {
+    return 0;
+  }
+  return totalWorkUnits / (wallClockMs / 1000);
+}
+
+export function scalingEfficiency(
+  multiThroughput: number,
+  singleThroughput: number,
+  workers: number,
+): number {
+  const denom = singleThroughput * workers;
+  if (denom <= 0) {
+    return 0;
+  }
+  return multiThroughput / denom;
 }
 
 export function createScheduler(totalRuns: number): SchedulerState {
@@ -78,12 +107,8 @@ export function createScheduler(totalRuns: number): SchedulerState {
   };
 }
 
-export function canStart(state: SchedulerState): boolean {
-  return state.status === 'idle';
-}
-
 export function startRun(state: SchedulerState): SchedulerState {
-  if (state.status !== 'idle' && state.status !== 'running') {
+  if (state.status !== 'idle') {
     throw new Error(`cannot start run from status ${state.status}`);
   }
   if (state.completed.length >= state.totalRuns) {
@@ -102,9 +127,9 @@ export function setRunProgress(state: SchedulerState, fraction: number): Schedul
   if (state.status !== 'running') {
     return state;
   }
-  const f = clamp(fraction, 0, 1);
+  const f = fraction < 0 ? 0 : fraction > 1 ? 1 : fraction;
   const progress = (state.completed.length + f) / state.totalRuns;
-  return { ...state, progress: clamp(progress, 0, 1) };
+  return { ...state, progress: progress < 0 ? 0 : progress > 1 ? 1 : progress };
 }
 
 export function completeRun(state: SchedulerState, value: number): SchedulerState {
@@ -124,14 +149,17 @@ export function completeRun(state: SchedulerState, value: number): SchedulerStat
   }
   return {
     ...state,
-    status: 'running',
+    status: 'idle',
     completed,
-    currentRun: completed.length,
+    currentRun: -1,
     progress: completed.length / state.totalRuns,
   };
 }
 
 export function failRun(state: SchedulerState, error: string): SchedulerState {
+  if (isTerminal(state)) {
+    return state;
+  }
   return {
     ...state,
     status: 'failed',
@@ -141,6 +169,9 @@ export function failRun(state: SchedulerState, error: string): SchedulerState {
 }
 
 export function abortRun(state: SchedulerState, reason?: string): SchedulerState {
+  if (isTerminal(state)) {
+    return state;
+  }
   return {
     ...state,
     status: 'aborted',
@@ -167,8 +198,8 @@ export function isTerminal(state: SchedulerState): boolean {
 }
 
 export function finalSummary(state: SchedulerState): RunSummary | null {
-  if (state.status !== 'completed' && state.status !== 'aborted' && state.status !== 'failed') {
+  if (state.status === 'idle' || state.status === 'running') {
     return null;
   }
-  return summarizeRuns(state.completed);
+  return summarizeRuns(state.completed, state.status !== 'completed');
 }

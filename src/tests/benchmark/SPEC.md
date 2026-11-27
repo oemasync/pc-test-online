@@ -2,18 +2,21 @@
 
 ## What it measures
 A quick, in-browser CPU / memory / GPU benchmark. All heavy work runs off the
-main thread. Scores are the median of N runs, with stddev reported. No network.
+main thread. Scores are the median of N runs, with sample stddev (n-1) reported.
+No network.
 
 ## Workloads
 - CPU single-thread and multi-thread (Web Workers sized to `navigator.hardwareConcurrency`):
   - integer hash loop
   - prime sieve
   - float matrix multiply
-- Memory bandwidth estimate via typed-array copies.
+- Memory copy bandwidth via typed-array copies (64 MiB per buffer, exceeds typical L3).
 - GPU fill-rate via a WebGL2 fragment-shader test.
 
-Each workload returns a checksum so the work cannot be optimized away and
-results are verifiable.
+Each workload returns a checksum. Fixed benchmark parameters and their expected
+checksums are exported as `BENCHMARK_PARAMS` and `EXPECTED_CHECKSUMS`; a result
+that does not match fails with a clear checksum-mismatch message (a genuine
+'unstable CPU / overclock' finding).
 
 ## Browser APIs (MDN names)
 - Workers: `Worker`, `new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' })`, `worker.postMessage`, `worker.onmessage`, `worker.terminate()`.
@@ -35,24 +38,42 @@ results are verifiable.
 1. User starts the benchmark.
 2. Scheduler runs N iterations per workload, reporting progress (0..1).
 3. Each run is abortable; abort terminates workers.
-4. On completion, median + stddev are shown per metric.
+4. On completion, median + sample stddev are shown per metric.
 5. Pass/Fail is recorded via the results store.
 
 ## Pass / Fail
-Pass = all workloads completed without errors and produced sane (finite) checksums.
-Fail = any error or non-finite / implausible checksum. Scores go to `details`.
+Pass = all workloads completed without errors and every checksum matches
+`EXPECTED_CHECKSUMS` (verified via `verifyChecksum`). Fail = any error or checksum
+mismatch. Scores go to `details`.
+
+## Scoring
+- Single-thread score = work units / median duration (units/s).
+- Multi-thread aggregate throughput = total work across workers / wall-clock
+  time of the slowest worker per round (units/s).
+- Scaling efficiency = multi / (single x workers).
+
+## Memory bandwidth
+Reported as 'copy bandwidth' in MiB/s. `bytes` is the number of bytes copied
+(payload); read+write traffic is 2x. Working set is 64 MiB per buffer to exceed
+typical L3.
 
 ## details keys
 - `cpuSingleThreadScore`
 - `cpuMultiThreadScore`
+- `cpuSingleStddev`
+- `cpuMultiStddev`
 - `intHashChecksum`
 - `primeSieveChecksum`
 - `matrixChecksum`
-- `memoryBandwidthMBps`
+- `memoryCopyBandwidthMiBps`
+- `memoryStddev`
 - `gpuFillRateMPixelsPerSec`
+- `gpuStddev`
 - `runs`
 - `hardwareConcurrency`
-- `cpuSingleStddev`
-- `cpuMultiStddev`
-- `memoryStddev`
-- `gpuStddev`
+
+## Scheduler semantics
+- `startRun` allowed only from `idle`.
+- `failRun` / `abortRun` on a terminal state return the state unchanged.
+- `finalSummary` for aborted/failed runs is marked `partial: true`.
+- Run statistics use sample stddev (n-1).

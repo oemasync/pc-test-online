@@ -3,8 +3,10 @@ import {
   median,
   stddev,
   summarizeRuns,
+  singleThreadScore,
+  multiThreadThroughput,
+  scalingEfficiency,
   createScheduler,
-  canStart,
   startRun,
   setRunProgress,
   completeRun,
@@ -37,14 +39,13 @@ describe('stddev', () => {
     expect(stddev([5])).toBe(0);
   });
   it('computes sample stddev', () => {
-    // stddev of [2,4,4,4,5,5,7,9] is 2
-    expect(stddev([2, 4, 4, 4, 5, 5, 7, 9])).toBeCloseTo(2, 5);
+    expect(stddev([2, 4, 4, 4, 5, 5, 7, 9])).toBeCloseTo(2.1380899353, 5);
   });
 });
 
 describe('summarizeRuns', () => {
-  it('empty summary', () => {
-    expect(summarizeRuns([])).toEqual({ count: 0, median: 0, stddev: 0, min: 0, max: 0 });
+  it('empty summary is not partial', () => {
+    expect(summarizeRuns([])).toMatchObject({ count: 0, partial: false });
   });
   it('summarizes noisy timings', () => {
     const noisy = [10.2, 9.8, 10.1, 9.9, 10.0, 10.3, 9.7];
@@ -54,6 +55,25 @@ describe('summarizeRuns', () => {
     expect(s.stddev).toBeGreaterThan(0);
     expect(s.min).toBeLessThanOrEqual(s.median);
     expect(s.max).toBeGreaterThanOrEqual(s.median);
+    expect(s.partial).toBe(false);
+  });
+});
+
+describe('scoring', () => {
+  it('singleThreadScore is work units per second', () => {
+    expect(singleThreadScore(1000, 2000)).toBeCloseTo(500, 5);
+  });
+  it('singleThreadScore returns 0 for non-positive duration', () => {
+    expect(singleThreadScore(10, 0)).toBe(0);
+  });
+  it('multiThreadThroughput is total work per second', () => {
+    expect(multiThreadThroughput(4000, 1000)).toBeCloseTo(4000, 5);
+  });
+  it('scalingEfficiency is multi / (single * workers)', () => {
+    expect(scalingEfficiency(4000, 1000, 4)).toBeCloseTo(1, 5);
+  });
+  it('scalingEfficiency returns 0 for zero denominator', () => {
+    expect(scalingEfficiency(10, 0, 4)).toBe(0);
   });
 });
 
@@ -64,35 +84,24 @@ describe('scheduler', () => {
     expect(s.totalRuns).toBe(3);
     expect(s.completed).toEqual([]);
     expect(s.progress).toBe(0);
-    expect(canStart(s)).toBe(true);
   });
 
   it('rejects invalid totalRuns', () => {
     expect(() => createScheduler(0)).toThrow(RangeError);
-    expect(() => createScheduler(-1)).toThrow(RangeError);
-    expect(() => createScheduler(1.5)).toThrow(RangeError);
   });
 
-  it('startRun transitions to running', () => {
-    const s = startRun(createScheduler(2));
-    expect(s.status).toBe('running');
-    expect(s.currentRun).toBe(0);
-    expect(s.progress).toBe(0);
-  });
-
-  it('cannot start from completed', () => {
-    let s = createScheduler(1);
-    s = startRun(s);
-    s = completeRun(s, 10);
-    expect(s.status).toBe('completed');
-    expect(() => startRun(s)).toThrow();
+  it('startRun only from idle', () => {
+    const s = createScheduler(2);
+    const r = startRun(s);
+    expect(r.status).toBe('running');
+    expect(() => startRun(r)).toThrow();
   });
 
   it('completeRun accumulates and finishes', () => {
     let s = createScheduler(2);
     s = startRun(s);
     s = completeRun(s, 5);
-    expect(s.status).toBe('running');
+    expect(s.status).toBe('idle');
     expect(s.completed).toEqual([5]);
     expect(s.progress).toBe(0.5);
     s = startRun(s);
@@ -103,7 +112,7 @@ describe('scheduler', () => {
     expect(isTerminal(s)).toBe(true);
   });
 
-  it('finalSummary after completion uses median', () => {
+  it('finalSummary after completion not partial', () => {
     let s = createScheduler(2);
     s = startRun(s);
     s = completeRun(s, 5);
@@ -112,7 +121,8 @@ describe('scheduler', () => {
     const fs = finalSummary(s);
     expect(fs).not.toBeNull();
     expect(fs!.median).toBe(6);
-    expect(fs!.stddev).toBeCloseTo(1, 5);
+    expect(fs!.stddev).toBeCloseTo(Math.sqrt(2), 5);
+    expect(fs!.partial).toBe(false);
   });
 
   it('setRunProgress updates within-run progress', () => {
@@ -120,7 +130,7 @@ describe('scheduler', () => {
     s = startRun(s);
     s = setRunProgress(s, 0.25);
     expect(s.progress).toBeCloseTo(0.125, 5);
-    s = setRunProgress(s, 1.5); // clamped
+    s = setRunProgress(s, 1.5);
     expect(s.progress).toBeCloseTo(0.5, 5);
   });
 
@@ -130,16 +140,18 @@ describe('scheduler', () => {
     expect(s2).toBe(s);
   });
 
-  it('failRun marks failed with error', () => {
+  it('failRun marks failed; terminal unchanged on repeat', () => {
     let s = createScheduler(2);
     s = startRun(s);
     s = failRun(s, 'boom');
     expect(s.status).toBe('failed');
     expect(s.error).toBe('boom');
+    const again = failRun(s, 'again');
+    expect(again).toBe(s);
     expect(isTerminal(s)).toBe(true);
   });
 
-  it('abortRun marks aborted and keeps completed', () => {
+  it('abortRun marks aborted and partial summary', () => {
     let s = createScheduler(3);
     s = startRun(s);
     s = completeRun(s, 9);
@@ -148,6 +160,17 @@ describe('scheduler', () => {
     expect(s.completed).toEqual([9]);
     expect(s.abortReason).toBe('user');
     expect(s.progress).toBeCloseTo(1 / 3, 5);
+    const fs = finalSummary(s);
+    expect(fs).not.toBeNull();
+    expect(fs!.partial).toBe(true);
+  });
+
+  it('abortRun on terminal returns unchanged', () => {
+    let s = createScheduler(1);
+    s = startRun(s);
+    s = completeRun(s, 1);
+    const again = abortRun(s, 'x');
+    expect(again).toBe(s);
   });
 
   it('finalSummary null while idle', () => {

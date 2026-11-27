@@ -2,15 +2,21 @@
 // Each workload returns a checksum so the work cannot be optimized away and
 // results are verifiable. No browser APIs, no DOM, no Vue, no src/core.
 
-export interface WorkloadChecksum {
-  value: number;
-}
+export const BENCHMARK_PARAMS = {
+  intHashIterations: 1_000_000,
+  primeSieveLimit: 100_000,
+  matrixSize: 64,
+  memoryElementCount: 64 * 1024 * 1024 / 8, // 64 MiB of float64 per buffer
+  memoryIterations: 4,
+} as const;
 
-/**
- * Deterministic integer hash loop.
- * @param iterations number of hash iterations (>=0)
- * @param seed initial 32-bit seed
- */
+export const EXPECTED_CHECKSUMS = {
+  intHash: 610629728,
+  primeSieve: 454396537,
+  matrix: 66903.63766940826,
+  memory: 16777222,
+} as const;
+
 export function intHashLoop(iterations: number, seed = 0x811c9dc5): number {
   let h = seed >>> 0;
   for (let i = 0; i < iterations; i += 1) {
@@ -21,11 +27,6 @@ export function intHashLoop(iterations: number, seed = 0x811c9dc5): number {
   return h >>> 0;
 }
 
-/**
- * Sieve of Eratosthenes up to `limit`.
- * Returns a checksum (sum of primes found, modulo 2^32) so the sieve work is
- * observable. Returns 0 for limit < 2.
- */
 export function primeSieve(limit: number): number {
   if (limit < 2) {
     return 0;
@@ -49,11 +50,6 @@ export function primeSieve(limit: number): number {
   return checksum >>> 0;
 }
 
-/**
- * Deterministic float matrix multiply C = A * B (size x size).
- * Matrices are filled deterministically from `seed`. Returns the sum of all
- * entries of C (a float checksum).
- */
 export function floatMatrixMultiply(size: number, seed = 1): number {
   if (size === 0) {
     return 0;
@@ -69,10 +65,8 @@ export function floatMatrixMultiply(size: number, seed = 1): number {
   for (let i = 0; i < n; i += 1) {
     for (let k = 0; k < n; k += 1) {
       const aik = a[i * n + k]!;
-      if (aik !== 0) {
-        for (let j = 0; j < n; j += 1) {
-          c[i * n + j] = c[i * n + j]! + aik * b[k * n + j]!;
-        }
+      for (let j = 0; j < n; j += 1) {
+        c[i * n + j] = c[i * n + j]! + aik * b[k * n + j]!;
       }
     }
   }
@@ -83,10 +77,6 @@ export function floatMatrixMultiply(size: number, seed = 1): number {
   return sum;
 }
 
-/**
- * Typed-array copy workload. Performs `iterations` copies of `elementCount`
- * float64 elements and returns a checksum derived from the copied data.
- */
 export function typedArrayCopyWorkload(elementCount: number, iterations: number): number {
   if (elementCount === 0 || iterations === 0) {
     return 0;
@@ -104,21 +94,19 @@ export function typedArrayCopyWorkload(elementCount: number, iterations: number)
   return checksum;
 }
 
-/**
- * Convert a measured copy duration into an estimated bandwidth (MB/s).
- * @param bytes number of bytes copied in the measured run
- * @param durationMs measured duration in milliseconds
- */
-export function estimateBandwidthMBps(bytes: number, durationMs: number): number {
-  if (bytes < 0 || durationMs <= 0) {
+// `bytes` is the number of bytes COPIED (payload), not read+write traffic
+// (which is 2x). Result in MiB/s.
+export function estimateCopyBandwidthMiBps(bytes: number, durationMs: number): number {
+  if (durationMs <= 0) {
     return 0;
   }
   return bytes / (1024 * 1024) / (durationMs / 1000);
 }
 
-/**
- * Sanity check that a checksum is a finite number (used for Pass/Fail).
- */
-export function isSaneChecksum(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
+export function verifyChecksum(workload: string, value: number): boolean {
+  if (!Object.prototype.hasOwnProperty.call(EXPECTED_CHECKSUMS, workload)) {
+    return false;
+  }
+  const expected = EXPECTED_CHECKSUMS[workload as keyof typeof EXPECTED_CHECKSUMS];
+  return expected === value;
 }
