@@ -85,10 +85,12 @@ export function scalingEfficiency(
 // Calibration: double until measured elapsed >= 10 ms, then scale to target.
 // Given the current repeat count, the elapsed ms for that run, and the target ms.
 export function calibrateRepeats(repeats: number, elapsedMs: number, targetMs: number): number {
-  if (elapsedMs < 10) {
-    return repeats * 2;
+  const base = repeats > 0 ? repeats : 1;
+  if (!Number.isFinite(elapsedMs) || elapsedMs < 10) {
+    return base * 2;
   }
-  return Math.max(repeats, Math.ceil((targetMs / elapsedMs) * repeats));
+  const scaled = Math.ceil((targetMs / elapsedMs) * base);
+  return Math.max(base, scaled);
 }
 
 export function createScheduler(totalRuns: number): SchedulerState {

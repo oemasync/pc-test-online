@@ -20,16 +20,16 @@ test('benchmark quick mode runs, verifies checksums, supports abort and pass', a
     await expect(page.getByText(/Single-thread score/i)).toBeVisible();
     await expect(page.getByText(/Verified/i)).toBeVisible();
 
-    // abort test: run again then abort
-    await page.getByTestId('run-button').click();
-    await page.getByTestId('abort-button').click();
-
-    // pass
+    // pass the completed run
     await page.getByTestId('pass-button').click();
     await expect(page.getByTestId('status-light-benchmark')).toHaveAttribute(
         'data-status',
         'passed'
     );
+
+    // abort test: run again then abort
+    await page.getByTestId('run-button').click();
+    await page.getByTestId('abort-button').click();
 
     expect(consoleErrors).toEqual([]);
 });
