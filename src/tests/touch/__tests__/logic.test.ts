@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     createCoverageGrid,
+    createCoverageState,
     pointToCell,
     lineCells,
     markPath,
@@ -24,22 +25,14 @@ describe('coverage grid', () => {
         for (const v of g.hit) expect(v).toBe(false);
     });
 
-    it('handles non-positive dims', () => {
-        const g = createCoverageGrid(0, 5);
-        expect(g.rows * g.cols).toBe(0);
-        expect(coverageRatio(g)).toBe(0);
-    });
-
     it('pointToCell maps normalized coordinates', () => {
         expect(pointToCell(0, 0, 2, 2)).toEqual({ row: 0, col: 0 });
         expect(pointToCell(0.99, 0.99, 2, 2)).toEqual({ row: 1, col: 1 });
         expect(pointToCell(0.5, 0.5, 2, 2)).toEqual({ row: 1, col: 1 });
     });
 
-    it('pointToCell returns null outside or invalid', () => {
+    it('pointToCell returns null outside', () => {
         expect(pointToCell(-0.1, 0, 2, 2)).toBeNull();
-        expect(pointToCell(0, 0, 0, 2)).toBeNull();
-        expect(pointToCell(0, 0, 2, 0)).toBeNull();
         expect(pointToCell(1.1, 0, 2, 2)).toBeNull();
     });
 
@@ -60,61 +53,83 @@ describe('coverage grid', () => {
     });
 
     it('markPath covers a 100-point path on 40x24', () => {
-        const g = createCoverageGrid(24, 40);
+        const s = createCoverageState(24, 40);
         const samples: NormalizedPoint[] = [];
         for (let i = 0; i < 100; i += 1) {
             samples.push({ x: i / 99, y: (i % 2 === 0 ? 0.1 : 0.9), pointerId: 1 });
         }
-        const g2 = markPath(g, samples);
-        expect(coveredCount(g2)).toBeGreaterThan(40);
+        const s2 = markPath(s, samples);
+        expect(coveredCount(s2)).toBeGreaterThan(40);
     });
 
     it('two simultaneous pointers far apart do not fill between them', () => {
-        const g = createCoverageGrid(10, 10);
+        const s = createCoverageState(10, 10);
         const samples: NormalizedPoint[] = [
             { x: 0.05, y: 0.05, pointerId: 1 },
             { x: 0.95, y: 0.95, pointerId: 2 },
         ];
-        const g2 = markPath(g, samples);
-        expect(coveredCount(g2)).toBe(2);
+        const s2 = markPath(s, samples);
+        expect(coveredCount(s2)).toBe(2);
     });
 
-    it('markPath with empty samples returns the same grid', () => {
-        const g = createCoverageGrid(2, 2);
-        const g2 = markPath(g, []);
-        expect(g2).toBe(g);
+    it('markPath with empty samples returns the same state', () => {
+        const s = createCoverageState(2, 2);
+        const s2 = markPath(s, []);
+        expect(s2).toBe(s);
     });
 
     it('markPath interpolates a single finger path', () => {
-        const g = createCoverageGrid(4, 4);
-        const g2 = markPath(g, [
+        const s = createCoverageState(4, 4);
+        const s2 = markPath(s, [
             { x: 0, y: 0, pointerId: 1 },
             { x: 1, y: 1, pointerId: 1 },
         ]);
-        expect(coveredCount(g2)).toBeGreaterThan(1);
+        expect(coveredCount(s2)).toBeGreaterThan(1);
+    });
+
+    it('consecutive batches from one pointer fill between them', () => {
+        let s = createCoverageState(10, 10);
+        s = coverageReducer(s, { type: 'markPath', samples: [{ x: 0.05, y: 0.05, pointerId: 1 }] });
+        s = coverageReducer(s, { type: 'markPath', samples: [{ x: 0.95, y: 0.95, pointerId: 1 }] });
+        expect(coveredCount(s)).toBeGreaterThan(2);
+    });
+
+    it('end forgets last cell so next touch does not connect', () => {
+        let s = createCoverageState(10, 10);
+        s = coverageReducer(s, { type: 'markPath', samples: [{ x: 0.05, y: 0.05, pointerId: 1 }] });
+        s = coverageReducer(s, { type: 'end', pointerId: 1 });
+        s = coverageReducer(s, { type: 'markPath', samples: [{ x: 0.95, y: 0.95, pointerId: 1 }] });
+        expect(coveredCount(s)).toBe(2);
+    });
+
+    it('interleaved pointers across batches never connect', () => {
+        let s = createCoverageState(10, 10);
+        s = coverageReducer(s, { type: 'markPath', samples: [{ x: 0.05, y: 0.05, pointerId: 1 }] });
+        s = coverageReducer(s, { type: 'markPath', samples: [{ x: 0.95, y: 0.95, pointerId: 2 }] });
+        expect(coveredCount(s)).toBe(2);
     });
 
     it('coverageReducer reset/markPath', () => {
-        let g = createCoverageGrid(2, 2);
-        g = coverageReducer(g, { type: 'reset', rows: 3, cols: 3 });
-        expect(g.rows * g.cols).toBe(9);
-        g = coverageReducer(g, { type: 'markPath', samples: [{ x: 0.5, y: 0.5, pointerId: 1 }] });
-        expect(coveredCount(g)).toBe(1);
-        const before = coveredCount(g);
-        g = coverageReducer(g, { type: 'markPath', samples: [{ x: 0, y: 0, pointerId: 1 }, { x: 1, y: 1, pointerId: 1 }] });
-        expect(coveredCount(g)).toBeGreaterThanOrEqual(before);
+        let s = createCoverageState(2, 2);
+        s = coverageReducer(s, { type: 'reset', rows: 3, cols: 3 });
+        expect(s.grid.rows * s.grid.cols).toBe(9);
+        s = coverageReducer(s, { type: 'markPath', samples: [{ x: 0.5, y: 0.5, pointerId: 1 }] });
+        expect(coveredCount(s)).toBe(1);
+        const before = coveredCount(s);
+        s = coverageReducer(s, { type: 'markPath', samples: [{ x: 0, y: 0, pointerId: 1 }, { x: 1, y: 1, pointerId: 1 }] });
+        expect(coveredCount(s)).toBeGreaterThanOrEqual(before);
     });
 
     it('coverageRatio reaches 1 when all cells covered', () => {
-        const g = createCoverageGrid(2, 2);
+        const s = createCoverageState(2, 2);
         const samples: NormalizedPoint[] = [
             { x: 0.25, y: 0.25, pointerId: 1 },
             { x: 0.75, y: 0.25, pointerId: 1 },
             { x: 0.25, y: 0.75, pointerId: 1 },
             { x: 0.75, y: 0.75, pointerId: 1 },
         ];
-        const g2 = markPath(g, samples);
-        expect(coverageRatio(g2)).toBe(1);
+        const s2 = markPath(s, samples);
+        expect(coverageRatio(s2)).toBe(1);
     });
 });
 

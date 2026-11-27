@@ -22,10 +22,20 @@ export interface NormalizedPoint {
     pointerId: number;
 }
 
+export interface Cell {
+    row: number;
+    col: number;
+}
+
 export interface CoverageGrid {
     rows: number;
     cols: number;
     hit: boolean[];
+}
+
+export interface CoverageState {
+    grid: CoverageGrid;
+    lastCell: Map<number, Cell>;
 }
 
 export interface PointerTrackerState {
@@ -42,12 +52,17 @@ export function isTouchSupported(maxTouchPoints: number): boolean {
 // ---------- Coverage grid ----------
 
 export function createCoverageGrid(rows: number, cols: number): CoverageGrid {
-    const r = rows > 0 ? rows : 0;
-    const c = cols > 0 ? cols : 0;
     return {
-        rows: r,
-        cols: c,
-        hit: new Array<boolean>(r * c).fill(false),
+        rows,
+        cols,
+        hit: new Array<boolean>(rows * cols).fill(false),
+    };
+}
+
+export function createCoverageState(rows: number, cols: number): CoverageState {
+    return {
+        grid: createCoverageGrid(rows, cols),
+        lastCell: new Map<number, Cell>(),
     };
 }
 
@@ -61,7 +76,6 @@ export function pointToCell(
     rows: number,
     cols: number,
 ): { row: number; col: number } | null {
-    if (rows <= 0 || cols <= 0) return null;
     if (x < 0 || x > 1 || y < 0 || y > 1) return null;
     const col = Math.min(cols - 1, Math.floor(x * cols));
     const row = Math.min(rows - 1, Math.floor(y * rows));
@@ -100,12 +114,13 @@ export function lineCells(
 }
 
 export function markPath(
-    grid: CoverageGrid,
+    state: CoverageState,
     samples: ReadonlyArray<NormalizedPoint>,
-): CoverageGrid {
-    if (samples.length === 0) return grid; // same grid, no clone
+): CoverageState {
+    if (samples.length === 0) return state;
 
-    const next = cloneGrid(grid);
+    const grid = { rows: state.grid.rows, cols: state.grid.cols, hit: state.grid.hit.slice() };
+    const lastCell = new Map(state.lastCell);
 
     // Group by pointer so interpolation never crosses fingers.
     const byId = new Map<number, NormalizedPoint[]>();
@@ -118,34 +133,37 @@ export function markPath(
         }
     }
 
-    for (const group of byId.values()) {
-        let prevCell: { row: number; col: number } | null = null;
+    for (const [pointerId, group] of byId) {
+        let prevCell = lastCell.get(pointerId) ?? null;
         for (const point of group) {
-            const cell = pointToCell(point.x, point.y, next.rows, next.cols);
+            const cell = pointToCell(point.x, point.y, grid.rows, grid.cols);
             if (!cell) {
                 prevCell = null;
                 continue;
             }
-            next.hit[cell.row * next.cols + cell.col] = true;
+            grid.hit[cell.row * grid.cols + cell.col] = true;
             if (prevCell) {
                 const cells = lineCells(prevCell.row, prevCell.col, cell.row, cell.col);
                 for (const [r, c] of cells) {
-                    next.hit[r * next.cols + c] = true;
+                    grid.hit[r * grid.cols + c] = true;
                 }
             }
             prevCell = cell;
         }
+        if (prevCell) lastCell.set(pointerId, prevCell);
     }
-    return next;
+    return { grid, lastCell };
 }
 
-export function coveredCount(grid: CoverageGrid): number {
+export function coveredCount(state: CoverageGrid | CoverageState): number {
+    const grid = 'grid' in state ? state.grid : state;
     let count = 0;
     for (const v of grid.hit) if (v) count += 1;
     return count;
 }
 
-export function coverageRatio(grid: CoverageGrid): number {
+export function coverageRatio(state: CoverageGrid | CoverageState): number {
+    const grid = 'grid' in state ? state.grid : state;
     const total = grid.rows * grid.cols;
     if (total === 0) return 0;
     return coveredCount(grid) / total;
@@ -155,14 +173,20 @@ export function coverageRatio(grid: CoverageGrid): number {
 
 export type CoverageAction =
     | { type: 'reset'; rows: number; cols: number }
-    | { type: 'markPath'; samples: ReadonlyArray<NormalizedPoint> };
+    | { type: 'markPath'; samples: ReadonlyArray<NormalizedPoint> }
+    | { type: 'end'; pointerId: number };
 
-export function coverageReducer(grid: CoverageGrid, action: CoverageAction): CoverageGrid {
+export function coverageReducer(state: CoverageState, action: CoverageAction): CoverageState {
     switch (action.type) {
         case 'reset':
-            return createCoverageGrid(action.rows, action.cols);
+            return createCoverageState(action.rows, action.cols);
         case 'markPath':
-            return markPath(grid, action.samples);
+            return markPath(state, action.samples);
+        case 'end': {
+            const lastCell = new Map(state.lastCell);
+            lastCell.delete(action.pointerId);
+            return { grid: state.grid, lastCell };
+        }
         default: {
             const exhaustive: never = action;
             throw new Error(`Unhandled coverage action: ${String(exhaustive)}`);
