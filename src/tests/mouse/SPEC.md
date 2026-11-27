@@ -15,9 +15,11 @@ Mouse input: buttons (left, middle, right, back, forward), double-click interval
 ## Browser support caveats
 - Back/forward buttons (3/4) are not present on all mice; module reports not-tested and allows Skip.
 - `getCoalescedEvents()` is Chromium-oriented; other browsers fall back to one sample per event, lowering the estimate.
+- Without `getCoalescedEvents()`, `pointermove` fires about once per animation frame, so a non-coalesced estimate would read ~60-144 Hz. The estimator must be fed coalesced-event timestamps.
+- Browsers coarsen `event.timeStamp` (often ~100 us in Chrome, ~5 us when cross-origin isolated), so 4000 and 8000 Hz cannot be told apart reliably; the reported nearest rate is capped at 4000 Hz.
 - Wheel `deltaMode` varies by browser/OS; readout shows raw mode.
 - Polling-rate estimate requires sustained movement; idle mice report nothing.
-- Chatter detection threshold is heuristic (default 50 ms).
+- Chatter detection threshold is heuristic (default 30 ms). Switch bounce occurs within ~5-30 ms; fast human double-clicks start around ~60-80 ms, so 30 ms separates chatter from intentional input.
 
 ## UX flow
 1. On mount, attach listeners inside the test area only.

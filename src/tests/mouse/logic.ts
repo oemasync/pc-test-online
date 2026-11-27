@@ -9,15 +9,8 @@ export const MOUSE_BUTTON_NAMES = ['left', 'middle', 'right', 'back', 'forward']
 
 export type MouseButtonType = (typeof MOUSE_BUTTON_NAMES)[number];
 
-export function mouseButtonName(button: number): MouseButtonType | null {
-  if (!Number.isInteger(button) || button < 0 || button > 4) {
-    return null;
-  }
-  return MOUSE_BUTTON_NAMES[button] as MouseButtonType;
-}
-
 export function isMouseButton(button: number): button is MouseButton {
-  return Number.isInteger(button) && button >= 0 && button <= 4;
+  return button >= 0 && button <= 4;
 }
 
 // ---------- Button state reducer ----------
@@ -63,8 +56,7 @@ export function buttonReducer(state: ButtonTestState, action: ButtonAction): But
     }
     default: {
       const exhaustive: never = action;
-      void exhaustive;
-      return state;
+      throw new Error(`Unhandled button action: ${String(exhaustive)}`);
     }
   }
 }
@@ -73,14 +65,14 @@ export function isButtonPressed(state: ButtonTestState, button: number): boolean
   if (!isMouseButton(button)) {
     return false;
   }
-  return state.pressed[button] === true;
+  return Boolean(state.pressed[button]);
 }
 
 export function isButtonTested(state: ButtonTestState, button: number): boolean {
   if (!isMouseButton(button)) {
     return false;
   }
-  return state.tested[button] === true;
+  return Boolean(state.tested[button]);
 }
 
 export function testedButtonCount(state: ButtonTestState): number {
@@ -88,10 +80,12 @@ export function testedButtonCount(state: ButtonTestState): number {
 }
 
 export function allButtonsTested(state: ButtonTestState): boolean {
-  return state.tested.every((value) => value === true);
+  return state.tested.every((value) => value);
 }
 
 // ---------- Double-click / click interval ----------
+
+export const MAX_CLICK_INTERVALS = 20;
 
 export interface ClickTrackerState {
   readonly clickCount: number;
@@ -113,14 +107,6 @@ export function initialClickTrackerState(): ClickTrackerState {
   };
 }
 
-export function clickInterval(firstMs: number, secondMs: number): number | null {
-  const delta = secondMs - firstMs;
-  if (delta < 0) {
-    return null;
-  }
-  return delta;
-}
-
 export function clickTrackerReducer(state: ClickTrackerState, action: ClickAction): ClickTrackerState {
   switch (action.type) {
     case 'reset':
@@ -135,28 +121,26 @@ export function clickTrackerReducer(state: ClickTrackerState, action: ClickActio
         };
       }
       const delta = action.timestamp - state.lastClickAt;
-      const interval = delta >= 0 ? delta : null;
-      const nextIntervals = interval === null ? state.intervals : [...state.intervals, interval];
+      const nextIntervals = [...state.intervals, delta].slice(-MAX_CLICK_INTERVALS);
       return {
         clickCount: state.clickCount + 1,
         lastClickAt: action.timestamp,
-        lastIntervalMs: interval,
+        lastIntervalMs: delta,
         intervals: nextIntervals,
       };
     }
     default: {
       const exhaustive: never = action;
-      void exhaustive;
-      return state;
+      throw new Error(`Unhandled click action: ${String(exhaustive)}`);
     }
   }
 }
 
-export function medianClickInterval(intervals: readonly number[]): number | null {
-  if (intervals.length === 0) {
-    return null;
+function median(values: readonly number[]): number {
+  if (values.length === 0) {
+    return 0;
   }
-  const sorted = [...intervals].sort((left, right) => left - right);
+  const sorted = [...values].sort((left, right) => left - right);
   const middle = Math.floor(sorted.length / 2);
   if (sorted.length % 2 === 1) {
     return sorted[middle] as number;
@@ -276,8 +260,7 @@ export function dragReducer(state: DragState, action: DragAction): DragState {
     }
     default: {
       const exhaustive: never = action;
-      void exhaustive;
-      return state;
+      throw new Error(`Unhandled drag action: ${String(exhaustive)}`);
     }
   }
 }
@@ -288,23 +271,25 @@ export function isDrag(distance: number, threshold: number = 5): boolean {
 
 // ---------- Chatter detection ----------
 
-export const DEFAULT_CHATTER_THRESHOLD_MS = 50;
+export const DEFAULT_CHATTER_THRESHOLD_MS = 30;
 
 export interface ChatterState {
-  readonly lastDownAt: number | null;
+  readonly lastDownAt: readonly (number | null)[];
   readonly chatterCount: number;
   readonly lastIntervalMs: number | null;
+  readonly thresholdMs: number;
 }
 
 export type ChatterAction =
-  | { readonly type: 'mousedown'; readonly timestamp: number; readonly thresholdMs?: number }
+  | { readonly type: 'mousedown'; readonly button: number; readonly timestamp: number }
   | { readonly type: 'reset' };
 
-export function initialChatterState(): ChatterState {
+export function initialChatterState(thresholdMs: number = DEFAULT_CHATTER_THRESHOLD_MS): ChatterState {
   return {
-    lastDownAt: null,
+    lastDownAt: [null, null, null, null, null],
     chatterCount: 0,
     lastIntervalMs: null,
+    thresholdMs,
   };
 }
 
@@ -317,30 +302,31 @@ export function isChatter(
     return false;
   }
   const delta = currentDownMs - previousDownMs;
-  if (delta < 0) {
-    return false;
-  }
   return delta < thresholdMs;
 }
 
 export function chatterReducer(state: ChatterState, action: ChatterAction): ChatterState {
   switch (action.type) {
     case 'reset':
-      return initialChatterState();
+      return initialChatterState(state.thresholdMs);
     case 'mousedown': {
-      const threshold = action.thresholdMs ?? DEFAULT_CHATTER_THRESHOLD_MS;
-      const chatter = isChatter(state.lastDownAt, action.timestamp, threshold);
+      if (!isMouseButton(action.button)) {
+        return state;
+      }
+      const previous = state.lastDownAt[action.button] ?? null;
+      const chatter = isChatter(previous, action.timestamp, state.thresholdMs);
+      const lastDownAt = state.lastDownAt.slice();
+      lastDownAt[action.button] = action.timestamp;
       return {
-        lastDownAt: action.timestamp,
+        lastDownAt,
         chatterCount: chatter ? state.chatterCount + 1 : state.chatterCount,
-        lastIntervalMs:
-          state.lastDownAt === null ? null : action.timestamp - state.lastDownAt,
+        lastIntervalMs: previous === null ? null : action.timestamp - previous,
+        thresholdMs: state.thresholdMs,
       };
     }
     default: {
       const exhaustive: never = action;
-      void exhaustive;
-      return state;
+      throw new Error(`Unhandled chatter action: ${String(exhaustive)}`);
     }
   }
 }
@@ -358,18 +344,6 @@ export interface PollingRateEstimate {
   readonly medianIntervalMs: number | null;
   readonly estimatedHz: number | null;
   readonly nearestStandardHz: StandardPollingRate | null;
-}
-
-function median(values: readonly number[]): number {
-  if (values.length === 0) {
-    return 0;
-  }
-  const sorted = [...values].sort((left, right) => left - right);
-  const middle = Math.floor(sorted.length / 2);
-  if (sorted.length % 2 === 1) {
-    return sorted[middle] as number;
-  }
-  return ((sorted[middle - 1] as number) + (sorted[middle] as number)) / 2;
 }
 
 export function removeOutlierIntervals(intervals: readonly number[]): number[] {
@@ -429,10 +403,16 @@ export function nearestStandardPollingRate(hz: number): StandardPollingRate | nu
   if (hz <= 0) {
     return null;
   }
+  // Timestamp resolution in browsers (~100 us in Chrome) cannot reliably
+  // distinguish 4000 vs 8000 Hz, so cap the reported rate at 4000 Hz.
+  const cappedHz = Math.min(hz, 4000);
   let nearest: StandardPollingRate = STANDARD_POLLING_RATES[0];
-  let bestDistance = Math.abs(hz - nearest);
+  let bestDistance = Math.abs(cappedHz - nearest);
   for (const rate of STANDARD_POLLING_RATES) {
-    const distance = Math.abs(hz - rate);
+    if (rate > 4000) {
+      continue;
+    }
+    const distance = Math.abs(cappedHz - rate);
     if (distance < bestDistance) {
       bestDistance = distance;
       nearest = rate;

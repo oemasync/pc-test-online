@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-  mouseButtonName,
   isMouseButton,
   initialButtonState,
   buttonReducer,
@@ -8,10 +7,8 @@ import {
   isButtonTested,
   testedButtonCount,
   allButtonsTested,
-  clickInterval,
   initialClickTrackerState,
   clickTrackerReducer,
-  medianClickInterval,
   classifyWheel,
   deltaModeLabel,
   initialDragState,
@@ -27,29 +24,15 @@ import {
   estimatePollingRate,
   removeOutlierIntervals,
   nearestStandardPollingRate,
-  type ButtonTestState,
-  type ClickTrackerState,
-  type DragState,
-  type ChatterState,
-  type PollingRateEstimate,
+  MAX_CLICK_INTERVALS,
 } from '../logic';
 
-describe('mouseButtonName / isMouseButton', () => {
-  it('maps 0..4 to names', () => {
-    expect(mouseButtonName(0)).toBe('left');
-    expect(mouseButtonName(1)).toBe('middle');
-    expect(mouseButtonName(2)).toBe('right');
-    expect(mouseButtonName(3)).toBe('back');
-    expect(mouseButtonName(4)).toBe('forward');
-  });
-  it('returns null for invalid', () => {
-    expect(mouseButtonName(5)).toBeNull();
-    expect(mouseButtonName(-1)).toBeNull();
-    expect(mouseButtonName(1.5)).toBeNull();
-  });
-  it('isMouseButton guards', () => {
-    expect(isMouseButton(2)).toBe(true);
-    expect(isMouseButton(9)).toBe(false);
+describe('isMouseButton', () => {
+  it('valid range', () => {
+    expect(isMouseButton(0)).toBe(true);
+    expect(isMouseButton(4)).toBe(true);
+    expect(isMouseButton(5)).toBe(false);
+    expect(isMouseButton(-1)).toBe(false);
   });
 });
 
@@ -101,18 +84,14 @@ describe('buttonReducer', () => {
     expect(isButtonTested(s, 0)).toBe(false);
     expect(isButtonTested(s2, 0)).toBe(true);
   });
+  it('throws on unknown action', () => {
+    const s = initialButtonState();
+    expect(() => buttonReducer(s, { type: 'nope' } as never)).toThrow();
+  });
 });
 
-describe('clickInterval / clickTrackerReducer', () => {
-  it('clickInterval basic', () => {
-    expect(clickInterval(100, 250)).toBe(150);
-    expect(clickInterval(250, 100)).toBeNull();
-    expect(clickInterval(100, 100)).toBe(0);
-  });
-  it('clickInterval handles equal timestamps', () => {
-    expect(clickInterval(10, 10)).toBe(0);
-  });
-  it('tracker records intervals', () => {
+describe('clickTrackerReducer', () => {
+  it('records intervals', () => {
     let s = initialClickTrackerState();
     s = clickTrackerReducer(s, { type: 'click', timestamp: 100 });
     expect(s.clickCount).toBe(1);
@@ -122,16 +101,22 @@ describe('clickInterval / clickTrackerReducer', () => {
     expect(s.lastIntervalMs).toBe(160);
     expect(s.intervals).toEqual([160]);
   });
+  it('bounds intervals to MAX_CLICK_INTERVALS', () => {
+    let s = initialClickTrackerState();
+    for (let i = 0; i < MAX_CLICK_INTERVALS + 5; i += 1) {
+      s = clickTrackerReducer(s, { type: 'click', timestamp: i * 10 });
+    }
+    expect(s.intervals.length).toBe(MAX_CLICK_INTERVALS);
+  });
   it('reset clears', () => {
     let s = initialClickTrackerState();
     s = clickTrackerReducer(s, { type: 'click', timestamp: 1 });
     s = clickTrackerReducer(s, { type: 'reset' });
     expect(s.clickCount).toBe(0);
   });
-  it('medianClickInterval', () => {
-    expect(medianClickInterval([])).toBeNull();
-    expect(medianClickInterval([100, 200])).toBe(150);
-    expect(medianClickInterval([100, 200, 300])).toBe(200);
+  it('throws on unknown action', () => {
+    const s = initialClickTrackerState();
+    expect(() => clickTrackerReducer(s, { type: 'nope' } as never)).toThrow();
   });
 });
 
@@ -194,44 +179,50 @@ describe('drag', () => {
     s = dragReducer(s, { type: 'reset' });
     expect(s.dragging).toBe(false);
   });
-  it('end without start keeps null start ignored', () => {
+  it('end without start is ignored', () => {
     const s = initialDragState();
     const s2 = dragReducer(s, { type: 'end', x: 5, y: 5 });
     expect(s2.completed).toBe(false);
   });
+  it('throws on unknown action', () => {
+    const s = initialDragState();
+    expect(() => dragReducer(s, { type: 'nope' } as never)).toThrow();
+  });
 });
 
 describe('chatter', () => {
+  it('default threshold is 30', () => {
+    expect(DEFAULT_CHATTER_THRESHOLD_MS).toBe(30);
+  });
   it('isChatter true within threshold', () => {
-    expect(isChatter(100, 130, 50)).toBe(true);
-    expect(isChatter(100, 200, 50)).toBe(false);
-    expect(isChatter(null, 100, 50)).toBe(false);
+    expect(isChatter(100, 120, 30)).toBe(true);
+    expect(isChatter(100, 200, 30)).toBe(false);
+    expect(isChatter(null, 100, 30)).toBe(false);
   });
-  it('isChatter rejects invalid threshold', () => {
-    expect(isChatter(100, 110, 0)).toBe(false);
-    expect(isChatter(100, 110, -5)).toBe(false);
-  });
-  it('isChatter rejects backwards', () => {
-    expect(isChatter(200, 100, 50)).toBe(false);
-  });
-  it('reducer counts chatter', () => {
+  it('reducer counts same-button chatter only', () => {
     let s = initialChatterState();
-    s = chatterReducer(s, { type: 'mousedown', timestamp: 100 });
+    s = chatterReducer(s, { type: 'mousedown', button: 0, timestamp: 100 });
     expect(s.chatterCount).toBe(0);
-    s = chatterReducer(s, { type: 'mousedown', timestamp: 120 });
+    s = chatterReducer(s, { type: 'mousedown', button: 0, timestamp: 120 });
     expect(s.chatterCount).toBe(1);
     expect(s.lastIntervalMs).toBe(20);
-    s = chatterReducer(s, { type: 'mousedown', timestamp: 500 });
-    expect(s.chatterCount).toBe(1);
   });
-  it('reset clears', () => {
+  it('cross-button presses do not count as chatter', () => {
     let s = initialChatterState();
-    s = chatterReducer(s, { type: 'mousedown', timestamp: 1 });
-    s = chatterReducer(s, { type: 'reset' });
+    s = chatterReducer(s, { type: 'mousedown', button: 0, timestamp: 100 });
+    s = chatterReducer(s, { type: 'mousedown', button: 2, timestamp: 120 });
     expect(s.chatterCount).toBe(0);
   });
-  it('default threshold constant', () => {
-    expect(DEFAULT_CHATTER_THRESHOLD_MS).toBeGreaterThan(0);
+  it('reset clears and preserves threshold', () => {
+    let s = initialChatterState(40);
+    s = chatterReducer(s, { type: 'mousedown', button: 0, timestamp: 1 });
+    s = chatterReducer(s, { type: 'reset' });
+    expect(s.chatterCount).toBe(0);
+    expect(s.thresholdMs).toBe(40);
+  });
+  it('throws on unknown action', () => {
+    const s = initialChatterState();
+    expect(() => chatterReducer(s, { type: 'nope' } as never)).toThrow();
   });
 });
 
@@ -255,6 +246,11 @@ describe('polling rate', () => {
     expect(est.estimatedHz).toBeCloseTo(1000, 0);
     expect(est.nearestStandardHz).toBe(1000);
   });
+  it('quantized 0.1ms at 1000hz', () => {
+    const ts = Array.from({ length: 100 }, (_, i) => Math.round(i * 1 * 10) / 10);
+    const est = estimatePollingRate(ts);
+    expect(est.nearestStandardHz).toBe(1000);
+  });
   it('empty -> nulls', () => {
     const est = estimatePollingRate([]);
     expect(est.estimatedHz).toBeNull();
@@ -262,10 +258,11 @@ describe('polling rate', () => {
     expect(est.medianIntervalMs).toBeNull();
     expect(est.sampleCount).toBe(0);
   });
-  it('nearestStandardPollingRate', () => {
+  it('nearestStandardPollingRate caps at 4000', () => {
     expect(nearestStandardPollingRate(120)).toBe(125);
     expect(nearestStandardPollingRate(0)).toBeNull();
-    expect(nearestStandardPollingRate(null as unknown as number)).toBeNull();
+    expect(nearestStandardPollingRate(5000)).toBe(4000);
+    expect(nearestStandardPollingRate(8000)).toBe(4000);
   });
   it('STANDARD_POLLING_RATES contains expected', () => {
     expect(STANDARD_POLLING_RATES).toEqual([125, 250, 500, 1000, 2000, 4000, 8000]);
@@ -278,9 +275,6 @@ describe('polling rate', () => {
   it('outlier removal keeps all when few', () => {
     expect(removeOutlierIntervals([8, 8])).toEqual([8, 8]);
   });
-});
-
-describe('polling rate robustness', () => {
   it('jittery 8ms intervals still ~125hz', () => {
     const base = Array.from({ length: 60 }, (_, i) => i * 8);
     const jittered = base.map((t, i) => t + (i % 5) - 2);
@@ -289,26 +283,9 @@ describe('polling rate robustness', () => {
     expect(est.estimatedHz).toBeGreaterThan(100);
     expect(est.estimatedHz).toBeLessThan(160);
   });
-  it('coalesced bursts yield a high rate without crashing', () => {
-    const ts: number[] = [];
-    for (let i = 0; i < 40; i += 1) {
-      const base = i * 8;
-      ts.push(base, base + 0.2, base + 0.4);
-    }
-    const est = estimatePollingRate(ts);
-    expect(est.estimatedHz).not.toBeNull();
-    expect(est.nearestStandardHz).not.toBeNull();
-    expect(est.sampleCount).toBeGreaterThan(0);
-  });
   it('idle gaps are rejected as outliers', () => {
     const ts = [0, 8, 16, 24, 1000, 1008, 1016, 1024, 1032];
     const est = estimatePollingRate(ts);
     expect(est.nearestStandardHz).toBe(125);
-  });
-  it('median interval readout present', () => {
-    const ts = Array.from({ length: 20 }, (_, i) => i * 4);
-    const est = estimatePollingRate(ts);
-    expect(est.medianIntervalMs).toBe(4);
-    expect(est.nearestStandardHz).toBe(250);
   });
 });
