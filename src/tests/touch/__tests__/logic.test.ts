@@ -59,7 +59,7 @@ describe('coverage grid', () => {
             samples.push({ x: i / 99, y: (i % 2 === 0 ? 0.1 : 0.9), pointerId: 1 });
         }
         const s2 = markPath(s, samples);
-        expect(coveredCount(s2)).toBeGreaterThan(40);
+        expect(coveredCount(s2)).toBe(800);
     });
 
     it('two simultaneous pointers far apart do not fill between them', () => {
@@ -84,14 +84,17 @@ describe('coverage grid', () => {
             { x: 0, y: 0, pointerId: 1 },
             { x: 1, y: 1, pointerId: 1 },
         ]);
-        expect(coveredCount(s2)).toBeGreaterThan(1);
+        expect(coveredCount(s2)).toBe(4);
     });
 
     it('consecutive batches from one pointer fill between them', () => {
         let s = createCoverageState(10, 10);
         s = coverageReducer(s, { type: 'markPath', samples: [{ x: 0.05, y: 0.05, pointerId: 1 }] });
         s = coverageReducer(s, { type: 'markPath', samples: [{ x: 0.95, y: 0.95, pointerId: 1 }] });
-        expect(coveredCount(s)).toBeGreaterThan(2);
+        expect(coveredCount(s)).toBe(10);
+        for (let i = 0; i < 10; i += 1) {
+            expect(s.grid.hit[i * 10 + i]).toBe(true);
+        }
     });
 
     it('end forgets last cell so next touch does not connect', () => {
