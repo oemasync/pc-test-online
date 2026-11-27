@@ -11,6 +11,7 @@
   "etaLabel": "Estimated time",
   "measuring": "Measuring…",
   "unknown": "unknown",
+  "loadError": "Could not read the battery. Permission denied or API failure.",
   "hoursAbbr": "h",
   "minutesAbbr": "m",
   "secondsAbbr": "s",

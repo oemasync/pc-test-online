@@ -72,9 +72,13 @@ describe('BatteryTest unsupported', () => {
         vi.resetModules();
         delete (navigator as { getBattery?: unknown }).getBattery;
         const BatteryTest = (await import('../BatteryTest.vue')).default;
+        const results = await import('@/core/results');
         const wrapper = mountWithPlugins(BatteryTest);
         expect(wrapper.text()).toContain('Battery API not supported');
-        const skipBtn = wrapper.findAll('button').find(b => b.text() === 'Skip');
-        expect(skipBtn).toBeDefined();
+        const skipBtn = wrapper.find('[data-testid="skip-button"]');
+        expect(skipBtn.exists()).toBe(true);
+        await skipBtn.trigger('click');
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(results.getStatus('battery')).toBe('skipped');
     });
 });
