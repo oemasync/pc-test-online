@@ -104,6 +104,6 @@ onUnmounted(() => {
 }
 .hint {
     font-size: 0.85rem;
-    color: var(--text-secondary, #6b7280);
+    color: var(--text-secondary);
 }
 </style>

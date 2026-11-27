@@ -139,8 +139,8 @@ watch(selectedDeviceId, (id) => {
 <style scoped>
 .notice {
     padding: 0.5rem;
-    background: var(--surface, #f9fafb);
-    border: 1px solid var(--border, #e5e7eb);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 4px;
 }
 .device-row {
