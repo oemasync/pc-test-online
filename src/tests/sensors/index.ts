@@ -7,6 +7,7 @@ const module: TestModule = {
   titleKey: 'tests.sensors.title',
   descriptionKey: 'tests.sensors.description',
   component: () => import('./SensorsTest.vue'),
+  isSupported: () => true,
 }
 
 export default module
