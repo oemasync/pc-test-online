@@ -3,8 +3,6 @@ import {
     SWEEP_MIN_HZ,
     SWEEP_MAX_HZ,
     MAX_OUTPUT_GAIN,
-    DEFAULT_TONE_VOLUME,
-    CLICK_FREE_ATTACK_S,
     SWEEP_REACTION_TIME_S,
     sweepFrequencyAtTime,
     fallingSweepFrequencyAtTime,
@@ -54,7 +52,11 @@ describe('sweep', () => {
 
     it('reaction-time compensation lowers marked frequency on rising sweep', () => {
         const pressTime = 5;
-        const marked = markedSweepFrequency({ pressTime, duration: 10, reactionTime: SWEEP_REACTION_TIME_S });
+        const marked = markedSweepFrequency({
+            pressTime,
+            duration: 10,
+            reactionTime: SWEEP_REACTION_TIME_S,
+        });
         const atPress = sweepFrequencyAtTime(pressTime, 10);
         expect(marked).toBeLessThan(atPress);
     });

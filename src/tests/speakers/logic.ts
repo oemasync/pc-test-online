@@ -50,7 +50,7 @@ export function sweepFrequencyAtTime(
     t: number,
     duration: number,
     min: number = SWEEP_MIN_HZ,
-    max: number = SWEEP_MAX_HZ,
+    max: number = SWEEP_MAX_HZ
 ): number {
     const ratio = Math.pow(max / min, t / duration);
     return min * ratio;
@@ -60,7 +60,7 @@ export function fallingSweepFrequencyAtTime(
     t: number,
     duration: number,
     min: number = SWEEP_MIN_HZ,
-    max: number = SWEEP_MAX_HZ,
+    max: number = SWEEP_MAX_HZ
 ): number {
     const ratio = Math.pow(min / max, t / duration);
     return max * ratio;
@@ -70,14 +70,18 @@ export function sweepTimeAtFrequency(
     hz: number,
     duration: number,
     min: number = SWEEP_MIN_HZ,
-    max: number = SWEEP_MAX_HZ,
+    max: number = SWEEP_MAX_HZ
 ): number {
     const span = Math.log(max / min);
     const pos = Math.log(hz / min) / span;
     return pos * duration;
 }
 
-export function compensatedSweepTime(pressTime: number, reactionTime: number, duration: number): number {
+export function compensatedSweepTime(
+    pressTime: number,
+    reactionTime: number,
+    duration: number
+): number {
     const t = pressTime - reactionTime;
     if (t < 0) return 0;
     if (t > duration) return duration;
@@ -121,7 +125,7 @@ export function gainRampEnvelope(
     peak: number,
     attack: number,
     hold: number,
-    release: number,
+    release: number
 ): GainPoint[] {
     const clampedPeak = peak > MAX_OUTPUT_GAIN ? MAX_OUTPUT_GAIN : peak;
     const t0 = startTime;
@@ -167,7 +171,7 @@ export function createAudibleRange(): AudibleRangeState {
 
 export function audibleRangeReducer(
     state: AudibleRangeState,
-    action: AudibleRangeAction,
+    action: AudibleRangeAction
 ): AudibleRangeState {
     switch (action.type) {
         case 'markLow': {
@@ -198,7 +202,10 @@ export function isAudibleRangeComplete(state: AudibleRangeState): boolean {
 
 // ---------- SinkId feature detection ----------
 
-export function detectSinkIdSupport(audioContextHasSetSinkId: boolean, mediaElementHasSetSinkId: boolean): SinkIdSupport {
+export function detectSinkIdSupport(
+    audioContextHasSetSinkId: boolean,
+    mediaElementHasSetSinkId: boolean
+): SinkIdSupport {
     if (audioContextHasSetSinkId) return 'audioContext';
     if (mediaElementHasSetSinkId) return 'mediaElement';
     return 'none';
