@@ -382,7 +382,7 @@ onUnmounted(() => {
   width: 100%;
   max-width: 640px;
   border-radius: 8px;
-  background: var(--bg, #000);
+  background: var(--bg);
 }
 .webcam-test__video--mirror {
   transform: scaleX(-1);
@@ -415,7 +415,7 @@ onUnmounted(() => {
   padding-left: 1.25rem;
 }
 .webcam-test__warning {
-  color: var(--color-danger, #ef4444);
+  color: var(--color-danger);
 }
 .webcam-test__canvas {
   display: none;
