@@ -39,7 +39,7 @@ function detectInitialLocale(): 'en' | 'es' {
 
 const initialLocale = detectInitialLocale()
 
-export const i18n = createI18n<Record<string, string | Record<string, unknown>>, 'en' | 'es'>({
+export const i18n = createI18n<Record<string, string | Record<string, unknown>>, 'en' | 'es', false>({
   legacy: false,
   locale: initialLocale,
   fallbackLocale: 'en',
@@ -47,7 +47,6 @@ export const i18n = createI18n<Record<string, string | Record<string, unknown>>,
     en: enMessages,
     es: esMessages,
   },
-  // vue-i18n's strict message types do not match our merged JSON shape; runtime is unaffected.
 })
 
 export const availableLocales = ['en', 'es'] as const
@@ -55,7 +54,7 @@ export const availableLocales = ['en', 'es'] as const
 export type AppLocale = (typeof availableLocales)[number]
 
 export function setLocale(locale: AppLocale): void {
-  (i18n.global.locale as unknown as { value: string }).value = locale
+  i18n.global.locale.value = locale
   try {
     localStorage.setItem('pc-test-online:locale', locale)
   } catch {
