@@ -1,0 +1,19 @@
+{
+  "title": "Microphone test",
+  "description": "Test microphone input, levels, clipping, noise floor and recording.",
+  "instructions": "Speak into the microphone. Watch the level meter move.",
+  "levelLabel": "Level (dBFS)",
+  "peakLabel": "Peak",
+  "clipLabel": "Clips",
+  "noiseFloorLabel": "Noise floor",
+  "silentWarning": "No audio detected (silent device).",
+  "recordLabel": "Record",
+  "stopRecordLabel": "Stop",
+  "playLabel": "Play",
+  "constraints": "Processing",
+  "echoCancellation": "Echo cancellation",
+  "noiseSuppression": "Noise suppression",
+  "autoGainControl": "Auto gain control",
+  "applied": "Applied",
+  "deviceLabel": "Device"
+}

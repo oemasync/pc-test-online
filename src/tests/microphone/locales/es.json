@@ -1,0 +1,19 @@
+{
+  "title": "Prueba de micrófono",
+  "description": "Prueba la entrada de micrófono, niveles, recorte, piso de ruido y grabación.",
+  "instructions": "Habla al micrófono. Observa el medidor de nivel.",
+  "levelLabel": "Nivel (dBFS)",
+  "peakLabel": "Pico",
+  "clipLabel": "Recortes",
+  "noiseFloorLabel": "Piso de ruido",
+  "silentWarning": "No se detectó audio (dispositivo silencioso).",
+  "recordLabel": "Grabar",
+  "stopRecordLabel": "Detener",
+  "playLabel": "Reproducir",
+  "constraints": "Procesamiento",
+  "echoCancellation": "Cancelación de eco",
+  "noiseSuppression": "Supresión de ruido",
+  "autoGainControl": "Control automático de ganancia",
+  "applied": "Aplicado",
+  "deviceLabel": "Dispositivo"
+}
