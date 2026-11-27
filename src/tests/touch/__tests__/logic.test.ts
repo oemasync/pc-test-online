@@ -136,6 +136,16 @@ describe('coverage grid', () => {
     });
 });
 
+    it('pointToCell returns null for y out of range', () => {
+        expect(pointToCell(0, -0.1, 2, 2)).toBeNull();
+        expect(pointToCell(0, 1.1, 2, 2)).toBeNull();
+    });
+
+    it('coverageRatio returns 0 for empty grid', () => {
+        const g = createCoverageGrid(0, 0);
+        expect(coverageRatio(g)).toBe(0);
+    });
+
 describe('pointer tracker', () => {
     const sample = (id: number, type: PointerSample['pointerType'] = 'touch'): PointerSample => ({
         pointerId: id,
@@ -189,6 +199,19 @@ describe('pointer tracker', () => {
         s = pointerTrackerReducer(s, { type: 'down', sample: sample(2) });
         s = pointerTrackerReducer(s, { type: 'clear' });
         expect(s.active.size).toBe(0);
+    });
+
+    it('up on unknown pointer is no-op', () => {
+        const s0 = createPointerTracker();
+        const s = pointerTrackerReducer(s0, { type: 'up', pointerId: 42 });
+        expect(s).toBe(s0);
+    });
+
+    it('clear preserves maxSimultaneous', () => {
+        let s = createPointerTracker();
+        s = pointerTrackerReducer(s, { type: 'down', sample: sample(1) });
+        s = pointerTrackerReducer(s, { type: 'clear' });
+        expect(s.maxSimultaneous).toBe(1);
     });
 
     it('pen pointer type accepted', () => {

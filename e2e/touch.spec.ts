@@ -47,7 +47,7 @@ test.describe('touch (hasTouch)', () => {
     await expect(maxTile.locator('.stat-tile__value')).toHaveText(/[2-9]/)
 
     await page.evaluate(
-      ({ x0, y0, x1, y1 }) => {
+      ({ x0, y0, w, h }) => {
         const el = document.querySelector('.touch-test__surface') as HTMLElement
         const move = (id: number, px: number, py: number) =>
           new PointerEvent('pointermove', {
@@ -67,13 +67,30 @@ test.describe('touch (hasTouch)', () => {
             bubbles: true,
             cancelable: true,
           })
-        for (let i = 0; i <= 10; i += 1) {
-          const t = i / 10
-          el.dispatchEvent(move(1, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t))
+        const down = (id: number, px: number, py: number) =>
+          new PointerEvent('pointerdown', {
+            pointerId: id,
+            pointerType: 'touch',
+            clientX: px,
+            clientY: py,
+            bubbles: true,
+            cancelable: true,
+          })
+        el.dispatchEvent(down(1, x0, y0))
+        const rows = 12
+        for (let r = 0; r < rows; r += 1) {
+          const y = y0 + (h * r) / (rows - 1)
+          const xStart = r % 2 === 0 ? x0 : x0 + w
+          const xEnd = r % 2 === 0 ? x0 + w : x0
+          const steps = 20
+          for (let i = 0; i <= steps; i += 1) {
+            const t = i / steps
+            el.dispatchEvent(move(1, xStart + (xEnd - xStart) * t, y))
+          }
         }
-        el.dispatchEvent(up(1, x1, y1))
+        el.dispatchEvent(up(1, x0, y0 + h))
       },
-      { x0: box.x + 20, y0: box.y + 20, x1: box.x + box.width - 20, y1: box.y + box.height - 20 },
+      { x0: box.x + 5, y0: box.y + 5, w: box.width - 10, h: box.height - 10 },
     )
 
     const afterCoverageText = await page
@@ -102,7 +119,7 @@ test.describe('touch (no touch)', () => {
     page.on('pageerror', (err) => consoleErrors.push(err.message))
 
     await page.goto('/test/touch')
-    await expect(page.getByText(/does not report touch input/)).toBeVisible()
+    await expect(page.locator('p').filter({ hasText: /Not supported in this browser/ })).toBeVisible()
     await expect(page.getByTestId('skip-button')).toBeVisible()
 
     expect(consoleErrors).toEqual([])
