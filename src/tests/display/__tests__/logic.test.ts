@@ -5,8 +5,6 @@ import {
   advanceColorSequence,
   buildDisplayDetails,
   createColorSequenceState,
-  cssPixelsPerDevicePixel,
-  devicePixels,
   displayCapabilityFromMediaQueries,
   estimateRefreshRate,
   frameIntervalsFromTimestamps,
@@ -86,11 +84,24 @@ describe('refresh-rate estimation', () => {
     expect(estimate.nearestStandardHz).toBeNull();
   });
 
+  it('estimates 50 Hz from a PAL-region frame stream', () => {
+    const estimate = estimateRefreshRate([20, 20, 20, 20, 40]);
+
+    expect(estimate.rejectedCount).toBe(1);
+    expect(estimate.nearestStandardHz).toBe(50);
+  });
+
+  it('estimates 165 Hz when a few frames are dropped', () => {
+    const estimate = estimateRefreshRate([6, 6, 6, 12, 6]);
+
+    expect(estimate.rejectedCount).toBe(1);
+    expect(estimate.nearestStandardHz).toBe(165);
+  });
   it('maps common rates to the nearest standard rate', () => {
     expect(nearestStandardRate(143.8)).toBe(144);
     expect(nearestStandardRate(239.5)).toBe(240);
     expect(nearestStandardRate(59.94)).toBe(60);
-    expect(nearestStandardRate(null)).toBeNull();
+    expect(nearestStandardRate(0)).toBeNull();
   });
 
   it('removes a doubled frame without removing normal jitter', () => {
@@ -110,9 +121,7 @@ describe('jitter statistics', () => {
     expect(stats.medianMs).toBe(20);
     expect(stats.minMs).toBe(10);
     expect(stats.maxMs).toBe(30);
-    expect(stats.rangeMs).toBe(20);
     expect(stats.standardDeviationMs).toBeCloseTo(8.1649658, 6);
-    expect(stats.jitterMs).toBe(stats.standardDeviationMs);
     expect(stats.p95Ms).toBe(30);
   });
 
@@ -121,7 +130,7 @@ describe('jitter statistics', () => {
 
     expect(stats.count).toBe(0);
     expect(stats.meanMs).toBeNull();
-    expect(stats.jitterMs).toBeNull();
+    expect(stats.standardDeviationMs).toBeNull();
   });
 });
 
@@ -136,7 +145,6 @@ describe('display capabilities', () => {
     expect(capability).toEqual({
       dynamicRange: 'high',
       colorGamut: 'p3',
-      hdrLikely: true,
     });
   });
 
@@ -149,7 +157,6 @@ describe('display capabilities', () => {
 
     expect(capability.dynamicRange).toBe('standard');
     expect(capability.colorGamut).toBe('srgb');
-    expect(capability.hdrLikely).toBe(false);
   });
 });
 
@@ -158,11 +165,6 @@ describe('device pixel helpers', () => {
     expect(normalizeDevicePixelRatio(0)).toBe(1);
     expect(normalizeDevicePixelRatio(Number.NaN)).toBe(1);
     expect(normalizeDevicePixelRatio(2)).toBe(2);
-  });
-
-  it('converts between CSS and device pixels', () => {
-    expect(cssPixelsPerDevicePixel(2)).toBe(0.5);
-    expect(devicePixels(10, 2)).toBe(20);
   });
 });
 

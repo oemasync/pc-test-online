@@ -37,6 +37,10 @@ All names below are the standard MDN-documented APIs. No vendor-prefixed variant
   arbitrary elements.
 - `requestAnimationFrame` is throttled or paused in background tabs, so refresh-rate
   measurement is only meaningful while the page is visible.
+- rAF can also be throttled by battery saver, background-tab policy, or iframe
+  containment. The measured rate is therefore a floor: keep the tab focused and on
+  the display under test, and treat a lower-than-expected result as "at least this
+  rate" rather than a failure.
 - `dynamic-range` and `color-gamut` media queries report capability, not whether HDR
   content is actually being displayed.
 - `devicePixelRatio` can be fractional and can change when moving between displays.
@@ -98,10 +102,8 @@ All names below are the standard MDN-documented APIs. No vendor-prefixed variant
 - `frameIntervalsFromTimestamps(timestamps)`: rAF timestamp to interval conversion.
 - `removeOutlierIntervals(intervals)`: outlier rejection.
 - `estimateRefreshRate(intervals)`: median interval, Hz, and nearest standard rate.
-- `nearestStandardRate(hz)`: nearest value in 60/75/90/100/120/144/165/240/360.
+- `nearestStandardRate(hz)`: nearest value in 48/50/60/75/85/90/100/120/144/165/240/360.
 - `jitterStats(intervals)`: frame-pacing statistics.
 - `displayCapabilityFromMediaQueries(snapshot)`: HDR/gamut classification.
-- `normalizeDevicePixelRatio(value)`, `cssPixelsPerDevicePixel(value)`,
-  `devicePixels(cssPixels, value)`: device-pixel-ratio helpers.
+- `normalizeDevicePixelRatio(value)`: device-pixel-ratio helper.
 - `buildDisplayDetails(input)`: converts module inputs into `details`.
-path: src/tests/display/SPEC.md

@@ -16,7 +16,7 @@ export type ColorSequenceEvent =
   | { readonly type: 'select'; readonly index: number }
   | { readonly type: 'reset' };
 
-export const STANDARD_REFRESH_RATES = [60, 75, 90, 100, 120, 144, 165, 240, 360] as const;
+export const STANDARD_REFRESH_RATES = [48, 50, 60, 75, 85, 90, 100, 120, 144, 165, 240, 360] as const;
 
 export type StandardRefreshRate = (typeof STANDARD_REFRESH_RATES)[number];
 
@@ -35,10 +35,7 @@ export interface JitterStats {
   readonly medianMs: number | null;
   readonly minMs: number | null;
   readonly maxMs: number | null;
-  readonly rangeMs: number | null;
   readonly standardDeviationMs: number | null;
-  readonly meanAbsoluteDeviationMs: number | null;
-  readonly jitterMs: number | null;
   readonly p95Ms: number | null;
 }
 
@@ -55,7 +52,6 @@ export interface MediaQuerySnapshot {
 export interface DisplayCapability {
   readonly dynamicRange: DynamicRange;
   readonly colorGamut: ColorGamut;
-  readonly hdrLikely: boolean;
 }
 
 export interface DisplayDetailsInput {
@@ -221,8 +217,8 @@ export function estimateRefreshRate(intervals: readonly number[]): RefreshRateEs
   };
 }
 
-export function nearestStandardRate(hz: number | null | undefined): StandardRefreshRate | null {
-  if (typeof hz !== 'number' || !Number.isFinite(hz) || hz <= 0) {
+export function nearestStandardRate(hz: number): StandardRefreshRate | null {
+  if (!Number.isFinite(hz) || hz <= 0) {
     return null;
   }
 
@@ -251,10 +247,7 @@ export function jitterStats(intervals: readonly number[]): JitterStats {
       medianMs: null,
       minMs: null,
       maxMs: null,
-      rangeMs: null,
       standardDeviationMs: null,
-      meanAbsoluteDeviationMs: null,
-      jitterMs: null,
       p95Ms: null,
     };
   }
@@ -269,8 +262,6 @@ export function jitterStats(intervals: readonly number[]): JitterStats {
     return accumulator + delta * delta;
   }, 0) / count;
   const standardDeviationMs = Math.sqrt(variance);
-  const meanAbsoluteDeviationMs =
-    valid.reduce((accumulator, value) => accumulator + Math.abs(value - medianValue), 0) / count;
   const p95Index = Math.ceil(0.95 * count) - 1;
 
   return {
@@ -279,10 +270,7 @@ export function jitterStats(intervals: readonly number[]): JitterStats {
     medianMs: medianValue,
     minMs: sorted[0] as number,
     maxMs: sorted[count - 1] as number,
-    rangeMs: (sorted[count - 1] as number) - (sorted[0] as number),
     standardDeviationMs,
-    meanAbsoluteDeviationMs,
-    jitterMs: standardDeviationMs,
     p95Ms: sorted[Math.max(0, Math.min(count - 1, p95Index))] as number,
   };
 }
@@ -298,7 +286,6 @@ export function displayCapabilityFromMediaQueries(snapshot: MediaQuerySnapshot):
   return {
     dynamicRange,
     colorGamut,
-    hdrLikely: dynamicRange === 'high' && colorGamut !== 'srgb',
   };
 }
 
@@ -308,18 +295,6 @@ export function normalizeDevicePixelRatio(value: number): number {
   }
 
   return value;
-}
-
-export function cssPixelsPerDevicePixel(devicePixelRatio: number): number {
-  return 1 / normalizeDevicePixelRatio(devicePixelRatio);
-}
-
-export function devicePixels(cssPixels: number, devicePixelRatio: number): number {
-  if (!Number.isFinite(cssPixels)) {
-    return 0;
-  }
-
-  return cssPixels * normalizeDevicePixelRatio(devicePixelRatio);
 }
 
 export function buildDisplayDetails(input: DisplayDetailsInput): Record<string, string | number | boolean> {
@@ -355,8 +330,8 @@ export function buildDisplayDetails(input: DisplayDetailsInput): Record<string, 
   }
 
   if (input.jitter !== undefined && input.jitter !== null) {
-    if (input.jitter.jitterMs !== null) {
-      details.jitterMs = input.jitter.jitterMs;
+    if (input.jitter.standardDeviationMs !== null) {
+      details.jitterMs = input.jitter.standardDeviationMs;
     }
 
     if (input.jitter.minMs !== null) {
