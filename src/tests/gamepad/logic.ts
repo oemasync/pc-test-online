@@ -4,8 +4,17 @@ export interface StickPoint {
 }
 
 export interface StickDriftResult {
-  readonly offset: number;
+  readonly meanOffset: number;
+  readonly maxOffset: number;
+  readonly noise: number;
   readonly drifting: boolean;
+}
+
+export interface CircularityResult {
+  readonly error: number;
+  readonly coverage: number;
+  readonly coveredSectors: number;
+  readonly totalSectors: number;
 }
 
 export interface AxisChange {
@@ -22,106 +31,178 @@ export interface ButtonCoverageSummary {
   readonly ratio: number;
 }
 
-function finite(value: number | undefined, fallback = 0): number {
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+export interface TriggerRange {
+  readonly min: number;
+  readonly max: number;
+  readonly fullRange: boolean;
 }
 
-function nonNegative(value: number | undefined): number {
-  return Math.max(0, finite(value, 0));
+const CIRCULARITY_SECTORS = 36;
+
+function clampUnit(value: number): number {
+  if (value < -1) return -1;
+  if (value > 1) return 1;
+  return value;
 }
 
 export function applyDeadzone(value: number, deadzone = 0): number {
-  const numericValue = finite(value, 0);
-  const threshold = nonNegative(deadzone);
-
-  if (Math.abs(numericValue) <= threshold) {
+  if (Math.abs(value) <= deadzone) {
     return 0;
   }
 
-  return numericValue;
+  return value;
 }
 
 export function stickOffset(x: number, y: number): number {
-  return Math.hypot(finite(x, 0), finite(y, 0));
+  return Math.hypot(x, y);
 }
 
 export function detectStickDrift(
-  x: number,
-  y: number,
+  samples: readonly StickPoint[],
   deadzone = 0.15,
 ): StickDriftResult {
-  const offset = stickOffset(x, y);
-  const threshold = nonNegative(deadzone);
+  if (samples.length === 0) {
+    return {
+      meanOffset: 0,
+      maxOffset: 0,
+      noise: 0,
+      drifting: false,
+    };
+  }
+
+  const offsets = samples.map((sample) => {
+    const x = clampUnit(sample.x);
+    const y = clampUnit(sample.y);
+    return Math.hypot(x, y);
+  });
+
+  const meanOffset =
+    offsets.reduce((sum, offset) => sum + offset, 0) / offsets.length;
+  const maxOffset = Math.max(...offsets);
+  const variance =
+    offsets.reduce((sum, offset) => {
+      const difference = offset - meanOffset;
+      return sum + difference * difference;
+    }, 0) / offsets.length;
+  const noise = Math.sqrt(variance);
 
   return {
-    offset,
-    drifting: offset > threshold,
+    meanOffset,
+    maxOffset,
+    noise,
+    drifting: meanOffset > deadzone,
   };
-}
-
-export function isAxisDrifting(value: number, deadzone = 0.15): boolean {
-  return Math.abs(finite(value, 0)) > nonNegative(deadzone);
 }
 
 export function circularityError(
   samples: readonly StickPoint[],
-  outerRadius = 1,
-): number {
-  if (!Array.isArray(samples) || samples.length === 0) {
-    return 0;
-  }
-
-  const targetRadius = finite(outerRadius, 1);
-  let totalError = 0;
+  sectors = CIRCULARITY_SECTORS,
+): CircularityResult {
+  const totalSectors =
+    Number.isFinite(sectors) && sectors > 0 ? Math.trunc(sectors) : 1;
+  const hasSample = new Array<boolean>(totalSectors).fill(false);
+  const maxRadius = new Array<number>(totalSectors).fill(0);
+  let coveredSectors = 0;
 
   for (const sample of samples) {
-    const x = finite(sample?.x, 0);
-    const y = finite(sample?.y, 0);
-    totalError += Math.abs(Math.hypot(x, y) - targetRadius);
+    const x = clampUnit(sample.x);
+    const y = clampUnit(sample.y);
+    const radius = Math.hypot(x, y);
+    const angle = Math.atan2(y, x);
+    const sector = Math.min(
+      totalSectors - 1,
+      Math.max(
+        0,
+        Math.floor(((angle + Math.PI) / (Math.PI * 2)) * totalSectors),
+      ),
+    );
+
+    if (!hasSample[sector]) {
+      hasSample[sector] = true;
+      coveredSectors += 1;
+    }
+
+    const currentMax = maxRadius[sector] ?? 0;
+    if (radius > currentMax) {
+      maxRadius[sector] = radius;
+    }
   }
 
-  return totalError / samples.length;
+  let totalError = 0;
+
+  for (let sector = 0; sector < totalSectors; sector += 1) {
+    if (hasSample[sector] === true) {
+      totalError += Math.abs((maxRadius[sector] ?? 0) - 1);
+    }
+  }
+
+  const error = coveredSectors === 0 ? 0 : totalError / coveredSectors;
+  const coverage = coveredSectors / totalSectors;
+
+  return {
+    error,
+    coverage,
+    coveredSectors,
+    totalSectors,
+  };
+}
+
+export function createCoverage(count: number): boolean[] {
+  const size = Number.isFinite(count) && count > 0 ? Math.trunc(count) : 0;
+  return new Array<boolean>(size).fill(false);
 }
 
 export function buttonCoverageReducer(
   covered: readonly boolean[],
   buttonIndex: number,
 ): readonly boolean[] {
-  const normalized = covered.map((value) => value === true);
-
-  if (!Number.isFinite(buttonIndex)) {
-    return normalized;
+  if (
+    !Number.isInteger(buttonIndex) ||
+    buttonIndex < 0 ||
+    buttonIndex >= covered.length
+  ) {
+    return covered.slice();
   }
 
-  const index = Math.trunc(buttonIndex);
-
-  if (index < 0) {
-    return normalized;
-  }
-
-  const length = Math.max(normalized.length, index + 1);
-  const result = Array.from({ length }, (_, position) =>
-    position < normalized.length ? normalized[position] === true : false,
-  );
-
-  result[index] = true;
-  return result;
+  const next = covered.slice();
+  next[buttonIndex] = true;
+  return next;
 }
 
 export function buttonCoverage(
   covered: readonly boolean[],
 ): ButtonCoverageSummary {
-  const tested = covered.map((value) => value === true);
-  const testedCount = tested.reduce(
-    (count, value) => count + (value ? 1 : 0),
-    0,
-  );
+  const testedCount = covered.filter((value) => value).length;
 
   return {
-    tested,
+    tested: covered.slice(),
     testedCount,
-    total: tested.length,
-    ratio: tested.length === 0 ? 0 : testedCount / tested.length,
+    total: covered.length,
+    ratio: covered.length === 0 ? 0 : testedCount / covered.length,
+  };
+}
+
+export function createTriggerRange(): TriggerRange {
+  return {
+    min: 1,
+    max: 0,
+    fullRange: false,
+  };
+}
+
+export function triggerRangeReducer(
+  state: TriggerRange,
+  value: number,
+  tolerance = 0.05,
+): TriggerRange {
+  const min = Math.min(state.min, value);
+  const max = Math.max(state.max, value);
+  const fullRange = min <= tolerance && max >= 1 - tolerance;
+
+  return {
+    min,
+    max,
+    fullRange,
   };
 }
 
@@ -131,15 +212,14 @@ export function diffAxisSnapshots(
   epsilon = 0,
 ): readonly AxisChange[] {
   const length = Math.max(previous.length, next.length);
-  const threshold = nonNegative(epsilon);
   const changes: AxisChange[] = [];
 
   for (let index = 0; index < length; index += 1) {
-    const previousValue = finite(previous[index], 0);
-    const nextValue = finite(next[index], 0);
+    const previousValue = previous[index] ?? 0;
+    const nextValue = next[index] ?? 0;
     const delta = nextValue - previousValue;
 
-    if (Math.abs(delta) > threshold) {
+    if (Math.abs(delta) > epsilon) {
       changes.push({
         index,
         previous: previousValue,
@@ -150,25 +230,4 @@ export function diffAxisSnapshots(
   }
 
   return changes;
-}
-
-export function changedAxisIndices(
-  previous: readonly number[],
-  next: readonly number[],
-  epsilon = 0,
-): readonly number[] {
-  return diffAxisSnapshots(previous, next, epsilon).map(
-    (change) => change.index,
-  );
-}
-
-export function axisDeltas(
-  previous: readonly number[],
-  next: readonly number[],
-): readonly number[] {
-  const length = Math.max(previous.length, next.length);
-
-  return Array.from({ length }, (_, index) =>
-    finite(next[index], 0) - finite(previous[index], 0),
-  );
 }

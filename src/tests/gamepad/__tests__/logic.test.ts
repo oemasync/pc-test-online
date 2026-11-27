@@ -2,15 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import {
   applyDeadzone,
-  axisDeltas,
   buttonCoverage,
   buttonCoverageReducer,
-  changedAxisIndices,
   circularityError,
+  createCoverage,
+  createTriggerRange,
   detectStickDrift,
   diffAxisSnapshots,
-  isAxisDrifting,
   stickOffset,
+  triggerRangeReducer,
 } from '../logic';
 
 describe('applyDeadzone', () => {
@@ -23,79 +23,105 @@ describe('applyDeadzone', () => {
     expect(applyDeadzone(0.5, 0.1)).toBe(0.5);
     expect(applyDeadzone(-0.5, 0.1)).toBe(-0.5);
   });
+});
 
-  it('treats a negative deadzone as zero', () => {
-    expect(applyDeadzone(0.2, -1)).toBe(0.2);
+describe('stickOffset', () => {
+  it('computes the Euclidean offset', () => {
+    expect(stickOffset(0.3, 0.4)).toBeCloseTo(0.5, 10);
   });
 });
 
-describe('stickOffset and drift detection', () => {
-  it('computes the Euclidean resting offset', () => {
-    expect(stickOffset(0.3, 0.4)).toBeCloseTo(0.5, 10);
-  });
+describe('detectStickDrift', () => {
+  it('reports a centered noisy stick as not drifting', () => {
+    const samples = [
+      { x: 0.02, y: -0.01 },
+      { x: -0.01, y: 0.02 },
+      { x: 0.01, y: 0.01 },
+      { x: -0.02, y: -0.01 },
+    ];
 
-  it('reports drift when the offset exceeds the deadzone', () => {
-    const result = detectStickDrift(0.3, 0.4, 0.2);
+    const result = detectStickDrift(samples, 0.15);
 
-    expect(result.offset).toBeCloseTo(0.5, 10);
-    expect(result.drifting).toBe(true);
-  });
-
-  it('does not report drift on the deadzone boundary', () => {
-    const result = detectStickDrift(0.2, 0, 0.2);
-
-    expect(result.offset).toBeCloseTo(0.2, 10);
     expect(result.drifting).toBe(false);
+    expect(result.meanOffset).toBeLessThan(0.15);
+    expect(result.maxOffset).toBeGreaterThan(0);
+    expect(result.noise).toBeGreaterThan(0);
   });
 
-  it('detects a drifting single axis', () => {
-    expect(isAxisDrifting(0.3, 0.2)).toBe(true);
-    expect(isAxisDrifting(0.1, 0.2)).toBe(false);
+  it('reports a biased stick as drifting', () => {
+    const samples = [
+      { x: 0.3, y: 0.1 },
+      { x: 0.32, y: 0.08 },
+      { x: 0.28, y: 0.12 },
+    ];
+
+    const result = detectStickDrift(samples, 0.15);
+
+    expect(result.drifting).toBe(true);
+    expect(result.meanOffset).toBeGreaterThan(0.15);
+  });
+
+  it('returns zeroed stats for an empty resting window', () => {
+    expect(detectStickDrift([])).toEqual({
+      meanOffset: 0,
+      maxOffset: 0,
+      noise: 0,
+      drifting: false,
+    });
   });
 });
 
 describe('circularityError', () => {
-  it('is zero for a perfect unit circle', () => {
+  it('is approximately zero for a full rotation through the center', () => {
+    const samples = [{ x: 0, y: 0 }];
+
+    for (let angle = 0; angle < 360; angle += 5) {
+      const radians = (angle * Math.PI) / 180;
+      samples.push({ x: Math.cos(radians), y: Math.sin(radians) });
+    }
+
+    const result = circularityError(samples);
+
+    expect(result.error).toBeCloseTo(0, 10);
+    expect(result.coverage).toBe(1);
+  });
+
+  it('reports corner error for a squarish envelope', () => {
     const samples = [
-      { x: 1, y: 0 },
-      { x: 0, y: 1 },
-      { x: -1, y: 0 },
-      { x: 0, y: -1 },
+      { x: 1, y: 1 },
+      { x: -1, y: 1 },
+      { x: -1, y: -1 },
+      { x: 1, y: -1 },
     ];
 
-    expect(circularityError(samples)).toBeCloseTo(0, 10);
+    const result = circularityError(samples);
+
+    expect(result.error).toBeCloseTo(Math.sqrt(2) - 1, 10);
+    expect(result.coverage).toBeLessThan(0.2);
   });
 
-  it('measures the average distance from the target radius', () => {
-    const samples = [{ x: 0.9, y: 0 }, { x: 0, y: 1.1 }];
+  it('reports partial coverage for an incomplete rotation', () => {
+    const samples = [{ x: 1, y: 0 }, { x: 0, y: 1 }];
 
-    expect(circularityError(samples, 1)).toBeCloseTo(0.1, 10);
-  });
+    const result = circularityError(samples);
 
-  it('returns zero for an empty sample list', () => {
-    expect(circularityError([])).toBe(0);
+    expect(result.coverage).toBeLessThan(0.9);
+    expect(result.coveredSectors).toBe(2);
   });
 });
 
-describe('buttonCoverageReducer', () => {
-  it('marks a button as tested', () => {
-    expect(buttonCoverageReducer([false, false, false], 1)).toEqual([
-      false,
-      true,
-      false,
-    ]);
+describe('button coverage', () => {
+  it('initializes from the pad button count', () => {
+    expect(createCoverage(4)).toEqual([false, false, false, false]);
+    expect(createCoverage(0)).toEqual([]);
   });
 
-  it('extends coverage when a higher button index is pressed', () => {
-    expect(buttonCoverageReducer([true], 3)).toEqual([true, false, false, true]);
-  });
+  it('marks valid buttons without growing the array', () => {
+    const covered = createCoverage(3);
 
-  it('ignores invalid indices', () => {
-    expect(buttonCoverageReducer([true, false], -1)).toEqual([true, false]);
-    expect(buttonCoverageReducer([true, false], Number.NaN)).toEqual([
-      true,
-      false,
-    ]);
+    expect(buttonCoverageReducer(covered, 1)).toEqual([false, true, false]);
+    expect(buttonCoverageReducer(covered, 5)).toEqual(covered);
+    expect(buttonCoverageReducer(covered, -1)).toEqual(covered);
   });
 
   it('summarizes tested buttons', () => {
@@ -104,6 +130,29 @@ describe('buttonCoverageReducer', () => {
     expect(summary.testedCount).toBe(2);
     expect(summary.total).toBe(4);
     expect(summary.ratio).toBeCloseTo(0.5, 10);
+  });
+});
+
+describe('trigger range', () => {
+  it('tracks min and max and detects the full range', () => {
+    let state = createTriggerRange();
+
+    state = triggerRangeReducer(state, 0);
+    state = triggerRangeReducer(state, 0.5);
+    state = triggerRangeReducer(state, 1);
+
+    expect(state.min).toBe(0);
+    expect(state.max).toBe(1);
+    expect(state.fullRange).toBe(true);
+  });
+
+  it('does not report full range for a partial range', () => {
+    let state = createTriggerRange();
+
+    state = triggerRangeReducer(state, 0.2);
+    state = triggerRangeReducer(state, 0.8);
+
+    expect(state.fullRange).toBe(false);
   });
 });
 
@@ -131,10 +180,5 @@ describe('axis snapshot diffing', () => {
 
     expect(changes).toHaveLength(1);
     expect(changes[0]).toMatchObject({ index: 1, previous: 0, next: 0.25 });
-  });
-
-  it('lists changed indices and deltas independently', () => {
-    expect(changedAxisIndices([0, 0], [0.1, 0], 0)).toEqual([0]);
-    expect(axisDeltas([0, 0.5], [0.25, 0.5])).toEqual([0.25, 0]);
   });
 });

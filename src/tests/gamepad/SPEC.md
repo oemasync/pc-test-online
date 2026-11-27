@@ -4,8 +4,8 @@
 
 This module exercises a connected gamepad through the browser Gamepad API. It
 records connection state, standard-mapping availability, analog button and axis
-values, stick drift, stick circularity/range, button coverage, trigger range,
-and vibration support.
+values, stick drift from a resting window, stick circularity/range, button
+coverage, trigger range, and vibration support.
 
 ## Browser APIs
 
@@ -38,18 +38,28 @@ and vibration support.
 3. Poll the selected pad in `requestAnimationFrame`.
 4. Render a standard-mapping visual for `mapping === "standard"`, otherwise a
    generic list.
-5. Display analog button values/pressed state, axis values, drift indicators,
+5. Ask the user to release the sticks, collect a resting window, and report
+   mean offset, max offset, and noise.
+6. Ask the user to rotate each stick and collect samples; bucket them by angle
+   into 36 sectors, take the max radius per sector, and report circularity error
+   and sector coverage. Prompt the user until coverage is at least 90%.
+7. Track tested buttons from the pad's real button count.
+8. Track min/max values for analog trigger buttons (standard mapping buttons 6
+   and 7) and report whether 0 to 1 was reached.
+9. Display analog button values/pressed state, axis values, drift indicators,
    circularity error, button coverage, trigger ranges, and vibration controls.
-6. Cancel the animation frame loop on unmount.
+10. Cancel the animation frame loop on unmount.
 
 ## Pass/Fail meaning
 
 - Pass: a pad is connected, its controls can be exercised, button coverage is
-  complete, stick drift is within the configured deadzone, and circularity error
-  is within the configured tolerance.
+  complete, stick drift mean offset is within the configured deadzone, stick
+  circularity coverage is at least 90% with error within tolerance, triggers
+  reach their full range, and vibration is either supported and tested or not
+  required.
 - Fail: no supported pad is available, required controls cannot be read, button
-  coverage is incomplete, stick drift exceeds the deadzone, or circularity error
-  exceeds tolerance.
+  coverage is incomplete, stick drift exceeds the deadzone, circularity coverage
+  or error is outside tolerance, or a required trigger does not reach range.
 - Skip: the user chooses not to complete the interactive test.
 
 ## Details keys
@@ -61,13 +71,23 @@ and vibration support.
 - `buttonsTested`
 - `buttonCoverage`
 - `axisCount`
-- `leftStickOffset`
+- `leftStickMeanOffset`
+- `leftStickMaxOffset`
+- `leftStickNoise`
 - `leftStickDrifting`
-- `rightStickOffset`
+- `rightStickMeanOffset`
+- `rightStickMaxOffset`
+- `rightStickNoise`
 - `rightStickDrifting`
 - `leftStickCircularityError`
+- `leftStickCircularityCoverage`
 - `rightStickCircularityError`
-- `leftTriggerRange`
-- `rightTriggerRange`
+- `rightStickCircularityCoverage`
+- `leftTriggerMin`
+- `leftTriggerMax`
+- `leftTriggerFullRange`
+- `rightTriggerMin`
+- `rightTriggerMax`
+- `rightTriggerFullRange`
 - `vibrationSupported`
 - `vibrationTested`
