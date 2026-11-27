@@ -21,7 +21,9 @@ Multi-touch and pen input capability of the browser/device. It captures simultan
 2. If unsupported, show graceful message and Skip button.
 3. If supported, show live pointer points, max simultaneous count vs maxTouchPoints, coverage grid, and readouts.
 4. User swipes over whole screen; covered cells fill; uncovered cells reveal dead zones.
-5. User can Pass/Fail/Skip via TestLayout.
+5. Points are stored as fractions (0..1) of the test surface so resize/orientation change mid-test does not corrupt the grid.
+6. Interpolation is per pointer: a path never connects points from two different fingers.
+7. User can Pass/Fail/Skip via TestLayout.
 
 ## Pass/Fail meaning
 - Pass: coverage threshold met (all or most cells) and no dead zones reported; max simultaneous reached expected.

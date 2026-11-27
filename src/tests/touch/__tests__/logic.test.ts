@@ -1,30 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import {
     createCoverageGrid,
-    markCell,
     pointToCell,
     lineCells,
-    markPoint,
     markPath,
     coveredCount,
-    totalCells,
     coverageRatio,
     isFullyCovered,
     coverageReducer,
     createPointerTracker,
     pointerTrackerReducer,
-    isTouchPointer,
-    isPenPointer,
     isTouchSupported,
-    isReported,
-    clampTilt,
-    addPointer,
-    movePointer,
-    removePointer,
-    activeCount,
-    getPointer,
-    maxSimultaneousValue,
     type PointerSample,
+    type NormalizedPoint,
 } from '../logic';
 
 describe('coverage grid', () => {
@@ -32,42 +20,33 @@ describe('coverage grid', () => {
         const g = createCoverageGrid(2, 3);
         expect(g.rows).toBe(2);
         expect(g.cols).toBe(3);
-        expect(totalCells(g)).toBe(6);
+        expect(g.rows * g.cols).toBe(6);
         expect(coveredCount(g)).toBe(0);
         for (const v of g.hit) expect(v).toBe(false);
     });
 
     it('handles non-positive dims', () => {
         const g = createCoverageGrid(0, 5);
-        expect(totalCells(g)).toBe(0);
+        expect(g.rows * g.cols).toBe(0);
         expect(coverageRatio(g)).toBe(0);
         expect(isFullyCovered(g)).toBe(false);
     });
 
-    it('markCell marks in-bounds cell', () => {
-        const g = createCoverageGrid(2, 2);
-        const g2 = markCell(g, 0, 1);
-        expect(coveredCount(g2)).toBe(1);
-        // original unchanged
-        expect(coveredCount(g)).toBe(0);
-    });
-
-    it('markCell ignores out-of-bounds', () => {
-        const g = createCoverageGrid(2, 2);
-        const g2 = markCell(g, 5, 5);
-        expect(coveredCount(g2)).toBe(0);
-    });
-
-    it('pointToCell maps coordinates', () => {
-        expect(pointToCell(0, 0, 100, 100, 2, 2)).toEqual({ row: 0, col: 0 });
-        expect(pointToCell(99, 99, 100, 100, 2, 2)).toEqual({ row: 1, col: 1 });
-        expect(pointToCell(50, 50, 100, 100, 2, 2)).toEqual({ row: 1, col: 1 });
+    it('pointToCell maps normalized coordinates', () => {
+        expect(pointToCell(0, 0, 2, 2)).toEqual({ row: 0, col: 0 });
+        expect(pointToCell(0.99, 0.99, 2, 2)).toEqual({ row: 1, col: 1 });
+        expect(pointToCell(0.5, 0.5, 2, 2)).toEqual({ row: 1, col: 1 });
     });
 
     it('pointToCell returns null outside or invalid', () => {
-        expect(pointToCell(-1, 0, 100, 100, 2, 2)).toBeNull();
-        expect(pointToCell(0, 0, 0, 100, 2, 2)).toBeNull();
-        expect(pointToCell(0, 0, 100, 100, 0, 2)).toBeNull();
+        expect(pointToCell(-0.1, 0, 2, 2)).toBeNull();
+        expect(pointToCell(0, 0, 0, 2)).toBeNull();
+        expect(pointToCell(0, 0, 2, 0)).toBeNull();
+        expect(pointToCell(1.1, 0, 2, 2)).toBeNull();
+    });
+
+    it('pointToCell includes right/bottom edge', () => {
+        expect(pointToCell(1, 1, 2, 2)).toEqual({ row: 1, col: 1 });
     });
 
     it('lineCells covers straight horizontal', () => {
@@ -82,50 +61,69 @@ describe('coverage grid', () => {
         expect(cells[cells.length - 1]).toEqual([2, 2]);
     });
 
-    it('markPoint marks single cell', () => {
-        const g = createCoverageGrid(4, 4);
-        const g2 = markPoint(g, 10, 10, 100, 100);
-        expect(coveredCount(g2)).toBe(1);
+    it('markPath covers a 100-point path on 40x24', () => {
+        const g = createCoverageGrid(24, 40);
+        const samples: NormalizedPoint[] = [];
+        for (let i = 0; i < 100; i += 1) {
+            samples.push({ x: i / 99, y: (i % 2 === 0 ? 0.1 : 0.9), pointerId: 1 });
+        }
+        const g2 = markPath(g, samples);
+        expect(coveredCount(g2)).toBeGreaterThan(40);
     });
 
-    it('markPath interpolates between sparse points', () => {
+    it('two simultaneous pointers far apart do not fill between them', () => {
+        const g = createCoverageGrid(10, 10);
+        const samples: NormalizedPoint[] = [
+            { x: 0.05, y: 0.05, pointerId: 1 },
+            { x: 0.95, y: 0.95, pointerId: 2 },
+        ];
+        const g2 = markPath(g, samples);
+        expect(coveredCount(g2)).toBe(2);
+    });
+
+    it('markPath with empty samples returns clone unchanged', () => {
+        const g = createCoverageGrid(2, 2);
+        const g2 = markPath(g, []);
+        expect(coveredCount(g2)).toBe(0);
+    });
+
+    it('markPath interpolates a single finger path', () => {
         const g = createCoverageGrid(4, 4);
-        // two corner points; interpolation should cover diagonal cells
-        const g2 = markPath(g, [{ x: 0, y: 0 }, { x: 99, y: 99 }], 100, 100);
+        const g2 = markPath(g, [
+            { x: 0, y: 0, pointerId: 1 },
+            { x: 1, y: 1, pointerId: 1 },
+        ]);
         expect(coveredCount(g2)).toBeGreaterThan(1);
     });
 
-    it('markPath with empty points returns clone unchanged', () => {
-        const g = createCoverageGrid(2, 2);
-        const g2 = markPath(g, [], 100, 100);
-        expect(coveredCount(g2)).toBe(0);
+    it('coverageReducer reset/markCell/markPoint/markPath', () => {
+        let g = createCoverageGrid(2, 2);
+        g = coverageReducer(g, { type: 'reset', rows: 3, cols: 3 });
+        expect(g.rows * g.cols).toBe(9);
+        g = coverageReducer(g, { type: 'markCell', row: 1, col: 1 });
+        expect(coveredCount(g)).toBe(1);
+        g = coverageReducer(g, { type: 'markPoint', x: 0, y: 0 });
+        expect(coveredCount(g)).toBe(2);
+        const before = coveredCount(g);
+        g = coverageReducer(g, { type: 'markPath', samples: [{ x: 0, y: 0 }, { x: 1, y: 1 }] });
+        expect(coveredCount(g)).toBeGreaterThanOrEqual(before);
     });
 
     it('coverageRatio and isFullyCovered', () => {
         const g = createCoverageGrid(2, 2);
         expect(coverageRatio(g)).toBe(0);
         let g2 = g;
-        for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) g2 = markCell(g2, r, c);
+        g2 = coverageReducer(g2, { type: 'markCell', row: 0, col: 0 });
+        g2 = coverageReducer(g2, { type: 'markCell', row: 0, col: 1 });
+        g2 = coverageReducer(g2, { type: 'markCell', row: 1, col: 0 });
+        g2 = coverageReducer(g2, { type: 'markCell', row: 1, col: 1 });
         expect(coverageRatio(g2)).toBe(1);
         expect(isFullyCovered(g2)).toBe(true);
-    });
-
-    it('coverageReducer reset/markCell/markPoint/markPath', () => {
-        let g = createCoverageGrid(2, 2);
-        g = coverageReducer(g, { type: 'reset', rows: 3, cols: 3 });
-        expect(totalCells(g)).toBe(9);
-        g = coverageReducer(g, { type: 'markCell', row: 1, col: 1 });
-        expect(coveredCount(g)).toBe(1);
-        g = coverageReducer(g, { type: 'markPoint', x: 0, y: 0, width: 300, height: 300 });
-        expect(coveredCount(g)).toBe(2);
-        const before = coveredCount(g);
-        g = coverageReducer(g, { type: 'markPath', points: [{ x: 0, y: 0 }, { x: 299, y: 299 }], width: 300, height: 300 });
-        expect(coveredCount(g)).toBeGreaterThanOrEqual(before);
     });
 });
 
 describe('pointer tracker', () => {
-    const sample = (id: number, type = 'touch'): PointerSample => ({
+    const sample = (id: number, type: PointerSample['pointerType'] = 'touch'): PointerSample => ({
         pointerId: id,
         x: id * 10,
         y: id * 10,
@@ -163,8 +161,7 @@ describe('pointer tracker', () => {
         s = pointerTrackerReducer(s, { type: 'down', sample: sample(1) });
         const moved = { ...sample(1), x: 999 };
         s = pointerTrackerReducer(s, { type: 'move', sample: moved });
-        expect(getPointer(s.active, 1)?.x).toBe(999);
-        // move for unknown id ignored
+        expect(s.active.get(1)?.x).toBe(999);
         const beforeSize = s.active.size;
         s = pointerTrackerReducer(s, { type: 'move', sample: sample(99) });
         expect(s.active.size).toBe(beforeSize);
@@ -180,40 +177,16 @@ describe('pointer tracker', () => {
         expect(s.active.size).toBe(0);
     });
 
-    it('standalone helpers', () => {
-        let m = new Map<number, PointerSample>();
-        m = addPointer(m, sample(1));
-        expect(activeCount(m)).toBe(1);
-        m = movePointer(m, { ...sample(1), x: 5 });
-        expect(getPointer(m, 1)?.x).toBe(5);
-        m = removePointer(m, 1);
-        expect(activeCount(m)).toBe(0);
-        expect(maxSimultaneousValue(1, 3)).toBe(3);
-        expect(maxSimultaneousValue(3, 1)).toBe(3);
+    it('pen pointer type accepted', () => {
+        const s0 = createPointerTracker();
+        const s = pointerTrackerReducer(s0, { type: 'down', sample: sample(7, 'pen') });
+        expect(s.active.get(7)?.pointerType).toBe('pen');
     });
 });
 
-describe('helpers', () => {
-    it('pointer type classification', () => {
-        expect(isTouchPointer('touch')).toBe(true);
-        expect(isTouchPointer('pen')).toBe(false);
-        expect(isPenPointer('pen')).toBe(true);
-    });
-
+describe('support', () => {
     it('isTouchSupported', () => {
         expect(isTouchSupported(0)).toBe(false);
         expect(isTouchSupported(5)).toBe(true);
-    });
-
-    it('isReported', () => {
-        expect(isReported(undefined)).toBe(false);
-        expect(isReported(null)).toBe(false);
-        expect(isReported(0)).toBe(true);
-    });
-
-    it('clampTilt', () => {
-        expect(clampTilt(200)).toBe(90);
-        expect(clampTilt(-200)).toBe(-90);
-        expect(clampTilt(30)).toBe(30);
     });
 });

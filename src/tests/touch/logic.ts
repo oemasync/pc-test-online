@@ -1,6 +1,8 @@
 // Framework-free logic for the touch test module.
 // No Vue imports, no src/core imports.
 
+export type PointerType = 'mouse' | 'pen' | 'touch';
+
 export interface PointerSample {
     pointerId: number;
     x: number;
@@ -10,8 +12,14 @@ export interface PointerSample {
     tiltY?: number;
     width?: number;
     height?: number;
-    pointerType: string;
+    pointerType: PointerType;
     timestamp: number;
+}
+
+export interface NormalizedPoint {
+    x: number;
+    y: number;
+    pointerId?: number;
 }
 
 export interface CoverageGrid {
@@ -25,32 +33,10 @@ export interface PointerTrackerState {
     maxSimultaneous: number;
 }
 
-// ---------- Pointer type helpers ----------
-
-export function isTouchPointer(pointerType: string): boolean {
-    return pointerType === 'touch';
-}
-
-export function isPenPointer(pointerType: string): boolean {
-    return pointerType === 'pen';
-}
-
 // ---------- Support ----------
 
 export function isTouchSupported(maxTouchPoints: number): boolean {
     return maxTouchPoints > 0;
-}
-
-// ---------- Reported-value helpers ----------
-
-export function isReported(value: number | null | undefined): boolean {
-    return value !== null && value !== undefined;
-}
-
-export function clampTilt(value: number): number {
-    if (value < -90) return -90;
-    if (value > 90) return 90;
-    return value;
 }
 
 // ---------- Coverage grid ----------
@@ -65,41 +51,21 @@ export function createCoverageGrid(rows: number, cols: number): CoverageGrid {
     };
 }
 
-export function inBounds(grid: CoverageGrid, row: number, col: number): boolean {
-    return row >= 0 && row < grid.rows && col >= 0 && col < grid.cols;
-}
-
-export function cellIndex(grid: CoverageGrid, row: number, col: number): number {
-    return row * grid.cols + col;
-}
-
 function cloneGrid(grid: CoverageGrid): CoverageGrid {
     return { rows: grid.rows, cols: grid.cols, hit: grid.hit.slice() };
-}
-
-export function markCell(grid: CoverageGrid, row: number, col: number): CoverageGrid {
-    const next = cloneGrid(grid);
-    if (inBounds(grid, row, col)) {
-        next.hit[cellIndex(grid, row, col)] = true;
-    }
-    return next;
 }
 
 export function pointToCell(
     x: number,
     y: number,
-    width: number,
-    height: number,
     rows: number,
     cols: number,
 ): { row: number; col: number } | null {
-    if (width <= 0 || height <= 0 || rows <= 0 || cols <= 0) return null;
-    if (x < 0 || y < 0 || x >= width || y >= height) return null;
-    const col = Math.floor((x / width) * cols);
-    const row = Math.floor((y / height) * rows);
-    const clampedCol = Math.min(cols - 1, Math.max(0, col));
-    const clampedRow = Math.min(rows - 1, Math.max(0, row));
-    return { row: clampedRow, col: clampedCol };
+    if (rows <= 0 || cols <= 0) return null;
+    if (x < 0 || x > 1 || y < 0 || y > 1) return null;
+    const col = Math.min(cols - 1, Math.floor(x * cols));
+    const row = Math.min(rows - 1, Math.floor(y * rows));
+    return { row, col };
 }
 
 export function lineCells(
@@ -109,16 +75,15 @@ export function lineCells(
     c1: number,
 ): Array<[number, number]> {
     const cells: Array<[number, number]> = [];
-    let r = r0;
-    let c = c0;
     const dr = Math.abs(r1 - r0);
     const dc = Math.abs(c1 - c0);
-    const sr = r0 < r1 ? 1 : -1;
-    const sc = c0 < c1 ? 1 : -1;
+    const sr = r0 < r1 ? 1 : r0 > r1 ? -1 : 0;
+    const sc = c0 < c1 ? 1 : c0 > c1 ? -1 : 0;
     let err = dr - dc;
-    // Guard against infinite loop if inputs equal handled by break.
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
+    const maxSteps = dr + dc + 1;
+    let r = r0;
+    let c = c0;
+    for (let step = 0; step < maxSteps; step += 1) {
         cells.push([r, c]);
         if (r === r1 && c === c1) break;
         const e2 = 2 * err;
@@ -134,44 +99,60 @@ export function lineCells(
     return cells;
 }
 
-export function markPoint(
-    grid: CoverageGrid,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-): CoverageGrid {
-    const cell = pointToCell(x, y, width, height, grid.rows, grid.cols);
-    if (!cell) return cloneGrid(grid);
-    return markCell(grid, cell.row, cell.col);
-}
-
 export function markPath(
     grid: CoverageGrid,
-    points: ReadonlyArray<{ x: number; y: number }>,
-    width: number,
-    height: number,
+    samples: ReadonlyArray<NormalizedPoint>,
 ): CoverageGrid {
-    let current = cloneGrid(grid);
-    if (points.length === 0) return current;
-    for (let i = 0; i < points.length; i += 1) {
-        const point = points[i];
-        if (!point) continue;
-        const cell = pointToCell(point.x, point.y, width, height, current.rows, current.cols);
-        if (cell) current = markCell(current, cell.row, cell.col);
-        if (i > 0) {
-            const prev = points[i - 1];
-            if (!prev) continue;
-            const prevCell = pointToCell(prev.x, prev.y, width, height, current.rows, current.cols);
-            if (prevCell && cell) {
-                const cells = lineCells(prevCell.row, prevCell.col, cell.row, cell.col);
-                for (const [r, c] of cells) {
-                    current = markCell(current, r, c);
+    const next = cloneGrid(grid);
+    if (samples.length === 0) return next;
+
+    const hasPointerId = samples.some((s) => s.pointerId !== undefined);
+    const groups: Array<ReadonlyArray<NormalizedPoint>> = [];
+    if (hasPointerId) {
+        const byId = new Map<number, NormalizedPoint[]>();
+        const noId: NormalizedPoint[] = [];
+        for (const s of samples) {
+            if (s.pointerId === undefined) {
+                noId.push(s);
+            } else {
+                const existing = byId.get(s.pointerId);
+                if (existing) {
+                    existing.push(s);
+                } else {
+                    byId.set(s.pointerId, [s]);
+                }
+            }
+        }
+        for (const g of byId.values()) groups.push(g);
+        if (noId.length > 0) groups.push(noId);
+    } else {
+        groups.push(samples);
+    }
+
+    for (const group of groups) {
+        for (let i = 0; i < group.length; i += 1) {
+            const point = group[i];
+            if (!point) continue;
+            const cell = pointToCell(point.x, point.y, next.rows, next.cols);
+            if (cell) {
+                next.hit[cell.row * next.cols + cell.col] = true;
+            }
+            if (i > 0) {
+                const prev = group[i - 1];
+                if (!prev) continue;
+                const prevCell = pointToCell(prev.x, prev.y, next.rows, next.cols);
+                if (prevCell && cell) {
+                    const cells = lineCells(prevCell.row, prevCell.col, cell.row, cell.col);
+                    for (const [r, c] of cells) {
+                        if (r >= 0 && r < next.rows && c >= 0 && c < next.cols) {
+                            next.hit[r * next.cols + c] = true;
+                        }
+                    }
                 }
             }
         }
     }
-    return current;
+    return next;
 }
 
 export function coveredCount(grid: CoverageGrid): number {
@@ -180,18 +161,14 @@ export function coveredCount(grid: CoverageGrid): number {
     return count;
 }
 
-export function totalCells(grid: CoverageGrid): number {
-    return grid.rows * grid.cols;
-}
-
 export function coverageRatio(grid: CoverageGrid): number {
-    const total = totalCells(grid);
+    const total = grid.rows * grid.cols;
     if (total === 0) return 0;
     return coveredCount(grid) / total;
 }
 
 export function isFullyCovered(grid: CoverageGrid): boolean {
-    const total = totalCells(grid);
+    const total = grid.rows * grid.cols;
     if (total === 0) return false;
     return coveredCount(grid) === total;
 }
@@ -201,21 +178,38 @@ export function isFullyCovered(grid: CoverageGrid): boolean {
 export type CoverageAction =
     | { type: 'reset'; rows: number; cols: number }
     | { type: 'markCell'; row: number; col: number }
-    | { type: 'markPoint'; x: number; y: number; width: number; height: number }
-    | { type: 'markPath'; points: ReadonlyArray<{ x: number; y: number }>; width: number; height: number };
+    | { type: 'markPoint'; x: number; y: number }
+    | { type: 'markPath'; samples: ReadonlyArray<NormalizedPoint> };
 
 export function coverageReducer(grid: CoverageGrid, action: CoverageAction): CoverageGrid {
     switch (action.type) {
         case 'reset':
             return createCoverageGrid(action.rows, action.cols);
-        case 'markCell':
-            return markCell(grid, action.row, action.col);
-        case 'markPoint':
-            return markPoint(grid, action.x, action.y, action.width, action.height);
+        case 'markCell': {
+            const next = cloneGrid(grid);
+            if (
+                action.row >= 0 &&
+                action.row < grid.rows &&
+                action.col >= 0 &&
+                action.col < grid.cols
+            ) {
+                next.hit[action.row * grid.cols + action.col] = true;
+            }
+            return next;
+        }
+        case 'markPoint': {
+            const cell = pointToCell(action.x, action.y, grid.rows, grid.cols);
+            if (!cell) return cloneGrid(grid);
+            const next = cloneGrid(grid);
+            next.hit[cell.row * grid.cols + cell.col] = true;
+            return next;
+        }
         case 'markPath':
-            return markPath(grid, action.points, action.width, action.height);
-        default:
-            return grid;
+            return markPath(grid, action.samples);
+        default: {
+            const exhaustive: never = action;
+            throw new Error(`Unhandled coverage action: ${String(exhaustive)}`);
+        }
     }
 }
 
@@ -260,51 +254,9 @@ export function pointerTrackerReducer(
         case 'clear': {
             return { active: new Map<number, PointerSample>(), maxSimultaneous: state.maxSimultaneous };
         }
-        default:
-            return state;
+        default: {
+            const exhaustive: never = action;
+            throw new Error(`Unhandled pointer action: ${String(exhaustive)}`);
+        }
     }
-}
-
-// Standalone helpers retained for direct use / tests.
-export function addPointer(
-    active: ReadonlyMap<number, PointerSample>,
-    sample: PointerSample,
-): Map<number, PointerSample> {
-    const next = new Map(active);
-    next.set(sample.pointerId, sample);
-    return next;
-}
-
-export function movePointer(
-    active: ReadonlyMap<number, PointerSample>,
-    sample: PointerSample,
-): Map<number, PointerSample> {
-    if (!active.has(sample.pointerId)) return new Map(active);
-    const next = new Map(active);
-    next.set(sample.pointerId, sample);
-    return next;
-}
-
-export function removePointer(
-    active: ReadonlyMap<number, PointerSample>,
-    pointerId: number,
-): Map<number, PointerSample> {
-    const next = new Map(active);
-    next.delete(pointerId);
-    return next;
-}
-
-export function activeCount(active: ReadonlyMap<number, PointerSample>): number {
-    return active.size;
-}
-
-export function getPointer(
-    active: ReadonlyMap<number, PointerSample>,
-    pointerId: number,
-): PointerSample | undefined {
-    return active.get(pointerId);
-}
-
-export function maxSimultaneousValue(currentMax: number, activeCount: number): number {
-    return activeCount > currentMax ? activeCount : currentMax;
 }
