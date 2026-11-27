@@ -173,7 +173,7 @@ function onPointerDown(e: PointerEvent): void {
     const coalesced = (
         typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : [e]
     ) as PointerEvent[];
-    const samples = coalesced.map(ev => toNormalized(ev, rect));
+    const samples = (coalesced.length ? coalesced : [e]).map(ev => toNormalized(ev, rect));
     coverageState.value = coverageReducer(coverageState.value, { type: 'markPath', samples });
 }
 
@@ -199,7 +199,7 @@ function onPointerMove(e: PointerEvent): void {
     const coalesced = (
         typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : [e]
     ) as PointerEvent[];
-    const samples = coalesced.map(ev => toNormalized(ev, rect));
+    const samples = (coalesced.length ? coalesced : [e]).map(ev => toNormalized(ev, rect));
     coverageState.value = coverageReducer(coverageState.value, { type: 'markPath', samples });
 }
 
