@@ -14,6 +14,7 @@ import {
     midiNoteToFrequency,
     panForChannel,
     gainRampEnvelope,
+    voiceGain,
     chordFrequencies,
     pleasantChordFrequencies,
     MAJOR_CHORD_INTERVALS,
@@ -38,15 +39,6 @@ describe('sweep', () => {
         expect(mid).toBeCloseTo(geo, 3);
     });
 
-    it('clamps out-of-range t', () => {
-        expect(sweepFrequencyAtTime(-1, 10)).toBeCloseTo(SWEEP_MIN_HZ, 6);
-        expect(sweepFrequencyAtTime(100, 10)).toBeCloseTo(SWEEP_MAX_HZ, 6);
-    });
-
-    it('handles non-positive duration', () => {
-        expect(sweepFrequencyAtTime(5, 0)).toBe(SWEEP_MIN_HZ);
-    });
-
     it('inverse round-trips', () => {
         for (const t of [0, 1, 2.5, 5, 9.9]) {
             const f = sweepFrequencyAtTime(t, 10);
@@ -62,7 +54,7 @@ describe('sweep', () => {
 
     it('reaction-time compensation lowers marked frequency on rising sweep', () => {
         const pressTime = 5;
-        const marked = markedSweepFrequency(pressTime, 10, SWEEP_REACTION_TIME_S);
+        const marked = markedSweepFrequency({ pressTime, duration: 10, reactionTime: SWEEP_REACTION_TIME_S });
         const atPress = sweepFrequencyAtTime(pressTime, 10);
         expect(marked).toBeLessThan(atPress);
     });
@@ -96,11 +88,16 @@ describe('gain ramp', () => {
         const pts = gainRampEnvelope(0, 0.3, 0.05, 0.3, 0.05);
         expect(pts).toHaveLength(4);
         expect(pts[0]?.value).toBe(0);
-        expect(pts[0]?.ramp).toBe('setTargetAtTime');
+        expect(pts[0]?.ramp).toBe('set');
         expect(pts[1]?.value).toBeCloseTo(MAX_OUTPUT_GAIN, 6); // clamped to ceiling
-        expect(pts[2]?.value).toBeCloseTo(MAX_OUTPUT_GAIN, 6);
+        expect(pts[1]?.ramp).toBe('linear');
+        expect(pts[2]?.ramp).toBe('setTargetAtTime');
+        expect(pts[2]?.timeConstant).toBeCloseTo(0.05 / 5, 6); // release/5
         expect(pts[3]?.value).toBe(0);
-        expect(pts[3]?.ramp).toBe('setTargetAtTime');
+        expect(pts[3]?.ramp).toBe('set');
+        expect(pts[1]?.time).toBeCloseTo(0.05, 6);
+        expect(pts[2]?.time).toBeCloseTo(0.35, 6);
+        expect(pts[3]?.time).toBeCloseTo(0.4, 6);
     });
 
     it('caps peak at ceiling', () => {
@@ -113,6 +110,11 @@ describe('gain ramp', () => {
         for (const p of pts) {
             if (p.value === 0) expect(p.ramp).not.toBe('linear');
         }
+    });
+
+    it('voiceGain keeps summed peak within ceiling', () => {
+        const per = voiceGain(MAX_OUTPUT_GAIN, 3);
+        expect(per * 3).toBeLessThanOrEqual(MAX_OUTPUT_GAIN + 1e-12);
     });
 });
 

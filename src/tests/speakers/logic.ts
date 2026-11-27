@@ -14,7 +14,7 @@ export type Channel = 'left' | 'right' | 'both';
 export type SweepDirection = 'rising' | 'falling';
 export type Polarity = 'inPhase' | 'inverted';
 export type SinkIdSupport = 'audioContext' | 'mediaElement' | 'none';
-export type RampKind = 'linear' | 'setTargetAtTime';
+export type RampKind = 'set' | 'linear' | 'setTargetAtTime';
 
 export interface GainPoint {
     time: number;
@@ -35,6 +35,15 @@ export type AudibleRangeAction =
     | { type: 'reset' }
     | { type: 'complete' };
 
+export interface MarkedSweepOptions {
+    pressTime: number;
+    duration: number;
+    direction?: SweepDirection;
+    reactionTime?: number;
+    min?: number;
+    max?: number;
+}
+
 // ---------- Sweep (logarithmic 20 Hz .. 20 kHz) ----------
 
 export function sweepFrequencyAtTime(
@@ -43,9 +52,7 @@ export function sweepFrequencyAtTime(
     min: number = SWEEP_MIN_HZ,
     max: number = SWEEP_MAX_HZ,
 ): number {
-    if (duration <= 0) return min;
-    const clampedT = t < 0 ? 0 : t > duration ? duration : t;
-    const ratio = Math.pow(max / min, clampedT / duration);
+    const ratio = Math.pow(max / min, t / duration);
     return min * ratio;
 }
 
@@ -55,9 +62,7 @@ export function fallingSweepFrequencyAtTime(
     min: number = SWEEP_MIN_HZ,
     max: number = SWEEP_MAX_HZ,
 ): number {
-    if (duration <= 0) return max;
-    const clampedT = t < 0 ? 0 : t > duration ? duration : t;
-    const ratio = Math.pow(min / max, clampedT / duration);
+    const ratio = Math.pow(min / max, t / duration);
     return max * ratio;
 }
 
@@ -67,9 +72,6 @@ export function sweepTimeAtFrequency(
     min: number = SWEEP_MIN_HZ,
     max: number = SWEEP_MAX_HZ,
 ): number {
-    if (duration <= 0) return 0;
-    if (hz <= min) return 0;
-    if (hz >= max) return duration;
     const span = Math.log(max / min);
     const pos = Math.log(hz / min) / span;
     return pos * duration;
@@ -82,18 +84,15 @@ export function compensatedSweepTime(pressTime: number, reactionTime: number, du
     return t;
 }
 
-export function markedSweepFrequency(
-    pressTime: number,
-    duration: number,
-    reactionTime: number = SWEEP_REACTION_TIME_S,
-    min: number = SWEEP_MIN_HZ,
-    max: number = SWEEP_MAX_HZ,
-    direction: SweepDirection = 'rising',
-): number {
-    const t = compensatedSweepTime(pressTime, reactionTime, duration);
+export function markedSweepFrequency(options: MarkedSweepOptions): number {
+    const min = options.min ?? SWEEP_MIN_HZ;
+    const max = options.max ?? SWEEP_MAX_HZ;
+    const reactionTime = options.reactionTime ?? SWEEP_REACTION_TIME_S;
+    const direction = options.direction ?? 'rising';
+    const t = compensatedSweepTime(options.pressTime, reactionTime, options.duration);
     return direction === 'falling'
-        ? fallingSweepFrequencyAtTime(t, duration, min, max)
-        : sweepFrequencyAtTime(t, duration, min, max);
+        ? fallingSweepFrequencyAtTime(t, options.duration, min, max)
+        : sweepFrequencyAtTime(t, options.duration, min, max);
 }
 
 // ---------- Note to frequency ----------
@@ -110,7 +109,14 @@ export function panForChannel(channel: Channel): number {
     return 0;
 }
 
-// ---------- Gain ramp scheduling (avoid clicks) ----------
+// ---------- Gain ----------
+
+export function voiceGain(volume: number, voiceCount: number): number {
+    const v = volume > MAX_OUTPUT_GAIN ? MAX_OUTPUT_GAIN : volume;
+    const n = voiceCount < 1 ? 1 : voiceCount;
+    const per = v / n;
+    return per > MAX_OUTPUT_GAIN ? MAX_OUTPUT_GAIN : per;
+}
 
 export function gainRampEnvelope(
     startTime: number,
@@ -124,11 +130,12 @@ export function gainRampEnvelope(
     const t1 = t0 + attack;
     const t2 = t1 + hold;
     const t3 = t2 + release;
+    const timeConstant = release / 5;
     return [
-        { time: t0, value: 0, ramp: 'setTargetAtTime', timeConstant: CLICK_FREE_ATTACK_S },
+        { time: t0, value: 0, ramp: 'set' },
         { time: t1, value: clampedPeak, ramp: 'linear' },
-        { time: t2, value: clampedPeak, ramp: 'linear' },
-        { time: t3, value: 0, ramp: 'setTargetAtTime', timeConstant: CLICK_FREE_ATTACK_S },
+        { time: t2, value: 0, ramp: 'setTargetAtTime', timeConstant },
+        { time: t3, value: 0, ramp: 'set' },
     ];
 }
 
