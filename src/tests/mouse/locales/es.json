@@ -23,5 +23,7 @@
   "chatter": "Rebote",
   "chatterCount": "Cantidad de rebote",
   "chatterDetected": "Rebote detectado",
-  "testedLabel": "Botones probados"
+  "testedLabel": "Botones probados",
+  "skipBackForward": "Omitir atrás/adelante",
+  "acknowledgeChatter": "Reconocer chatter"
 }

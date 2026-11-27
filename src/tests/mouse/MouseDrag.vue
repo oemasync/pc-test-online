@@ -36,7 +36,7 @@ const { t } = useI18n()
 .mouse-drag__box {
   width: 8rem;
   height: 4rem;
-  border: 2px dashed var(--border, #ccc);
+  border: 2px dashed var(--border);
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -46,7 +46,7 @@ const { t } = useI18n()
 }
 .mouse-drag__box--dragging {
   cursor: grabbing;
-  background: #f59e0b;
-  color: #fff;
+  background: var(--color-warning);
+  color: var(--text);
 }
 </style>

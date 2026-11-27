@@ -49,16 +49,16 @@ const buttonNames = [
 .mouse-button-tile {
   min-width: 5rem;
   padding: 0.5rem;
-  border: 1px solid var(--border, #ccc);
+  border: 1px solid var(--border);
   border-radius: 6px;
   text-align: center;
 }
 .mouse-button-tile--pressed {
-  background: #f59e0b;
-  color: #fff;
+  background: var(--color-warning);
+  color: var(--text);
 }
 .mouse-button-tile--tested {
-  background: #22c55e;
-  color: #fff;
+  background: var(--color-success);
+  color: var(--text);
 }
 </style>

@@ -27,6 +27,6 @@ const { t } = useI18n()
 
 <style scoped>
 .mouse-chatter__warn {
-  color: #ef4444;
+  color: var(--color-danger);
 }
 </style>

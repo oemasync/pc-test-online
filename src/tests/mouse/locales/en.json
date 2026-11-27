@@ -23,5 +23,7 @@
   "chatter": "Chatter",
   "chatterCount": "Chatter count",
   "chatterDetected": "Chatter detected",
-  "testedLabel": "Buttons tested"
+  "testedLabel": "Buttons tested",
+  "skipBackForward": "Skip back/forward",
+  "acknowledgeChatter": "Acknowledge chatter"
 }

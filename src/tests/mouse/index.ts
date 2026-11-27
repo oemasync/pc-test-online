@@ -7,6 +7,7 @@ const module: TestModule = {
   titleKey: 'tests.mouse.title',
   descriptionKey: 'tests.mouse.description',
   component: () => import('./MouseTest.vue'),
+  isSupported: () => typeof MouseEvent !== 'undefined',
 }
 
 export default module

@@ -55,12 +55,12 @@ function label(dir: string): string {
 .mouse-wheel__tile {
   min-width: 4rem;
   padding: 0.5rem;
-  border: 1px solid var(--border, #ccc);
+  border: 1px solid var(--border);
   border-radius: 6px;
   text-align: center;
 }
 .mouse-wheel__tile--tested {
-  background: #22c55e;
-  color: #fff;
+  background: var(--color-success);
+  color: var(--text);
 }
 </style>
