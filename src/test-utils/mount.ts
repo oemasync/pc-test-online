@@ -6,8 +6,7 @@ import { i18n } from '@/i18n'
 
 export function mountWithPlugins(
   component: Component,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  options: MountingOptions<any> = {},
+  options: MountingOptions<unknown> = {},
 ) {
   const router = createRouter({
     history: createMemoryHistory(),
@@ -19,8 +18,7 @@ export function mountWithPlugins(
     ...rest,
     global: {
       ...globalRest,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      plugins: [i18n, router, ...((plugins as unknown[]) ?? [])] as any,
+      plugins: [i18n, router, ...(plugins ?? [])],
     },
   })
 }

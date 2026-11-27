@@ -143,6 +143,23 @@ const details = computed(() => ({ count: count.value }))
 - Shell guarantees `data-testid`s: `pass-button`, `fail-button`, `skip-button`, `reset-button`, `export-button`, `retest-button`, `fail-confirm-button`, `status-light-<id>` (with `data-status`).
 - Reach a module at `/test/<id>`.
 - Set `E2E_PORT` env var to run on a non-default port (default 4173).
+- reuseExistingServer is false: parallel workers must not share a preview server.
+
+## Theme tokens (only allowed colours)
+
+Light (`:root`) and dark (`[data-theme='dark']`) define the complete semantic token set. Modules may use only these variables; no alias names.
+
+- `--bg`
+- `--text`
+- `--text-secondary`
+- `--border`
+- `--surface`
+- `--color-danger`
+- `--color-warning`
+- `--color-warning-bg`
+- `--color-success`
+- `--color-accent`
+- `--color-text-muted`
 
 ## Testing helpers
 
