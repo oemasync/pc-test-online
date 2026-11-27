@@ -82,11 +82,14 @@ export function scalingEfficiency(
   return multiThroughput / (singleThroughput * workers);
 }
 
-// Calibration: double until measured elapsed >= 10 ms, then scale to target.
+// Minimum measured duration before calibration switches from doubling to scaling.
+export const CALIBRATION_MIN_MS = 10;
+
+// Calibration: double until measured elapsed >= CALIBRATION_MIN_MS, then scale to target.
 // Given the current repeat count, the elapsed ms for that run, and the target ms.
 export function calibrateRepeats(repeats: number, elapsedMs: number, targetMs: number): number {
   const base = repeats > 0 ? repeats : 1;
-  if (!Number.isFinite(elapsedMs) || elapsedMs < 10) {
+  if (!Number.isFinite(elapsedMs) || elapsedMs < CALIBRATION_MIN_MS) {
     return base * 2;
   }
   const scaled = Math.ceil((targetMs / elapsedMs) * base);

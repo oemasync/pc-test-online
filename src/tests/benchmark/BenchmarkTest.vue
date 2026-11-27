@@ -63,6 +63,8 @@
       <table
         v-if="result"
         class="benchmark__results"
+        aria-live="polite"
+        aria-atomic="true"
       >
         <tbody>
           <tr>
@@ -213,7 +215,7 @@ onUnmounted(() => {
     align-items: center;
 }
 .benchmark__error {
-    color: #dc2626;
+    color: var(--color-danger);
 }
 .benchmark__results {
     width: 100%;
@@ -221,7 +223,7 @@ onUnmounted(() => {
 }
 .benchmark__results th,
 .benchmark__results td {
-    border: 1px solid var(--color-border, #ccc);
+    border: 1px solid var(--border);
     padding: 0.25rem 0.5rem;
 }
 </style>

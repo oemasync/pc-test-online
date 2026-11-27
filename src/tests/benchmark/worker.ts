@@ -8,6 +8,7 @@ import {
     } from './workloads';
 import {
     calibrateRepeats,
+    CALIBRATION_MIN_MS,
     singleThreadScore,
     multiThreadThroughput,
     scalingEfficiency,
@@ -76,8 +77,8 @@ function calibrateTo(repFn: () => void, targetMs: number): number {
         }
         elapsed = now() - t0;
         if (aborted) return repeats;
-        if (elapsed >= 10) break;
-        repeats = calibrateRepeats(repeats, elapsed, 10);
+        if (elapsed >= CALIBRATION_MIN_MS) break;
+        repeats = calibrateRepeats(repeats, elapsed, CALIBRATION_MIN_MS);
     }
     return calibrateRepeats(repeats, elapsed, targetMs);
 }

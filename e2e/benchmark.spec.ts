@@ -30,6 +30,8 @@ test('benchmark quick mode runs, verifies checksums, supports abort and pass', a
     // abort test: run again then abort
     await page.getByTestId('run-button').click();
     await page.getByTestId('abort-button').click();
+    await expect(page.getByTestId('abort-button')).toBeDisabled();
+    await expect(page.getByTestId('run-button')).toBeEnabled();
 
     expect(consoleErrors).toEqual([]);
 });
