@@ -16,7 +16,7 @@ export interface SilenceSample {
 }
 
 const DEFAULT_CLIP_THRESHOLD = 0.99;
-const DEFAULT_SILENCE_THRESHOLD = 1e-6;
+export const DEFAULT_SILENCE_THRESHOLD = 1e-6;
 const DEFAULT_PEAK_HOLD_MS = 1000;
 const DEFAULT_PEAK_DECAY_DB_PER_SECOND = 20;
 const NOISE_FLOOR_PERCENTILE = 0.1;
@@ -114,12 +114,12 @@ export function countClipped(
  * window. Uses a low percentile so a single near-zero outlier cannot decide
  * the estimate.
  */
-export function estimateNoiseFloor(samples: Float32Array): number {
-  if (samples.length === 0) {
+export function estimateNoiseFloor(rmsHistory: readonly number[]): number {
+  if (rmsHistory.length === 0) {
     return 0;
   }
 
-  const sorted = Array.from(samples).sort((a, b) => a - b);
+  const sorted = Array.from(rmsHistory).sort((a, b) => a - b);
   const drop = Math.max(1, Math.floor(sorted.length * NOISE_FLOOR_PERCENTILE));
   const index = Math.min(drop, sorted.length - 1);
   return sorted[index] as number;
@@ -168,9 +168,6 @@ export function frequencyBinCentres(
   binCount: number,
   sampleRate: number,
 ): number[] {
-  if (binCount <= 0 || sampleRate <= 0) {
-    return [];
-  }
   const result: number[] = [];
   const nyquist = sampleRate / 2;
   for (let i = 0; i < binCount; i += 1) {

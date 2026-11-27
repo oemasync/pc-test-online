@@ -100,21 +100,20 @@ describe('countClipped', () => {
 
 describe('estimateNoiseFloor', () => {
   it('returns 0 for empty input', () => {
-    expect(estimateNoiseFloor(new Float32Array())).toBe(0);
+    expect(estimateNoiseFloor([])).toBe(0);
   });
 
   it('uses a low percentile, ignoring a single near-zero outlier', () => {
-    const window = new Float32Array([
+    const window = [
       0, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05,
-    ]);
+    ];
     expect(estimateNoiseFloor(window)).toBeCloseTo(0.05, 5);
   });
 
   it('returns the low percentile for a larger window', () => {
     const values = Array.from({ length: 100 }, () => 0.04);
     values[0] = 0;
-    const window = new Float32Array(values);
-    expect(estimateNoiseFloor(window)).toBeCloseTo(0.04, 5);
+    expect(estimateNoiseFloor(values)).toBeCloseTo(0.04, 5);
   });
 });
 
@@ -160,11 +159,6 @@ describe('detectSilence', () => {
 });
 
 describe('frequencyBinCentres', () => {
-  it('returns empty for invalid input', () => {
-    expect(frequencyBinCentres(0, 48000)).toEqual([]);
-    expect(frequencyBinCentres(4, 0)).toEqual([]);
-  });
-
   it('computes bin centres up to Nyquist', () => {
     const bins = frequencyBinCentres(4, 48000);
     expect(bins).toHaveLength(4);
