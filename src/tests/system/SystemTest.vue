@@ -122,22 +122,22 @@ const cores = ref<number>(navigator.hardwareConcurrency ?? 0);
 const deviceMemory = ref<number | null>(
     (navigator as { deviceMemory?: number }).deviceMemory ?? null
 );
-const platform = ref('unknown');
-const platformVersion = ref('unknown');
-const architecture = ref('unknown');
-const bitness = ref('unknown');
-const model = ref('unknown');
+const platform = ref(t('tests.system.unknown'));
+const platformVersion = ref(t('tests.system.unknown'));
+const architecture = ref(t('tests.system.unknown'));
+const bitness = ref(t('tests.system.unknown'));
+const model = ref(t('tests.system.unknown'));
 
-const gpuVendor = ref('unknown');
-const gpuRenderer = ref('unknown');
-const webgpuInfo = ref('unknown');
+const gpuVendor = ref(t('tests.system.unknown'));
+const gpuRenderer = ref(t('tests.system.unknown'));
+const webgpuInfo = ref(t('tests.system.unknown'));
 
 const screenWidth = ref(0);
 const screenHeight = ref(0);
 const dpr = ref(1);
 const colorDepth = ref(0);
-const colorGamut = ref('unknown');
-const dynamicRange = ref('unknown');
+const colorGamut = ref(t('tests.system.unknown'));
+const dynamicRange = ref(t('tests.system.unknown'));
 
 const storageUsage = ref('0 B');
 const storageQuota = ref('0 B');
@@ -148,8 +148,8 @@ const connectionType = ref(na());
 const downlink = ref(na());
 const rtt = ref(na());
 
-const languages = ref(navigator.languages?.join(', ') ?? 'unknown');
-const timezone = ref('unknown');
+const languages = ref(navigator.languages?.join(', ') ?? t('tests.system.unknown'));
+const timezone = ref(t('tests.system.unknown'));
 
 const copied = ref(false);
 const copyError = ref(false);
@@ -269,9 +269,9 @@ async function collect(): Promise<void> {
                 webgpuInfo.value =
                     [i.vendor, i.architecture, i.device, i.description]
                         .filter(Boolean)
-                        .join(' / ') || 'available';
+                        .join(' / ') || t('tests.system.available');
             } else {
-                webgpuInfo.value = 'available';
+                webgpuInfo.value = t('tests.system.available');
             }
         } catch {
             webgpuInfo.value = na();
@@ -323,7 +323,7 @@ async function collect(): Promise<void> {
     try {
         timezone.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
     } catch {
-        timezone.value = 'unknown';
+        timezone.value = t('tests.system.unknown');
     }
 }
 

@@ -47,6 +47,15 @@ describe('BatteryTest', () => {
         expect(wrapper.text()).toContain('50%');
     });
 
+    it('registers all four battery event listeners', async () => {
+        const BatteryTest = (await import('../BatteryTest.vue')).default;
+        mountWithPlugins(BatteryTest);
+        await new Promise(r => setTimeout(r, 0));
+        for (const evt of ['levelchange', 'chargingchange', 'chargingtimechange', 'dischargingtimechange']) {
+            expect(listeners[evt]?.size ?? 0).toBeGreaterThan(0);
+        }
+    });
+
     it('updates readouts on levelchange', async () => {
         const BatteryTest = (await import('../BatteryTest.vue')).default;
         const wrapper = mountWithPlugins(BatteryTest);
@@ -62,8 +71,13 @@ describe('BatteryTest', () => {
         const wrapper = mountWithPlugins(BatteryTest);
         await new Promise(r => setTimeout(r, 0));
         expect(listeners.levelchange?.size ?? 0).toBeGreaterThan(0);
+        for (const evt of ['levelchange', 'chargingchange', 'chargingtimechange', 'dischargingtimechange']) {
+            expect(listeners[evt]?.size ?? 0).toBeGreaterThan(0);
+        }
         wrapper.unmount();
-        expect(listeners.levelchange?.size ?? 0).toBe(0);
+        for (const evt of ['levelchange', 'chargingchange', 'chargingtimechange', 'dischargingtimechange']) {
+            expect(listeners[evt]?.size ?? 0).toBe(0);
+        }
     });
 });
 

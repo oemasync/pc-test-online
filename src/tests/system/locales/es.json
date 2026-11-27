@@ -31,6 +31,8 @@
   "languagesLabel": "Idiomas",
   "timezoneLabel": "Zona horaria",
   "notAvailable": "No disponible en este navegador",
+  "unknown": "Desconocido",
+  "available": "Disponible",
   "copySpecs": "Copiar especificaciones",
   "copied": "Copiado",
   "copyFailed": "Error al copiar; selecciona y copia manualmente."

@@ -31,6 +31,8 @@
   "languagesLabel": "Languages",
   "timezoneLabel": "Timezone",
   "notAvailable": "Not available in this browser",
+  "unknown": "Unknown",
+  "available": "Available",
   "copySpecs": "Copy specs",
   "copied": "Copied",
   "copyFailed": "Copy failed; select and copy manually."
