@@ -1,0 +1,19 @@
+{
+  "title": "Battery Test",
+  "description": "Check battery level, charging state and estimated time remaining using the Battery Status API.",
+  "levelLabel": "Charge level",
+  "statusLabel": "Status",
+  "charging": "Charging",
+  "notCharging": "Not charging",
+  "chargingTimeLabel": "Time to full",
+  "dischargingTimeLabel": "Time to empty",
+  "rateLabel": "Drain/charge rate",
+  "etaLabel": "Estimated time",
+  "measuring": "Measuring…",
+  "unknown": "unknown",
+  "hoursAbbr": "h",
+  "minutesAbbr": "m",
+  "secondsAbbr": "s",
+  "unsupportedTitle": "Battery API not supported",
+  "unsupportedMessage": "This browser does not expose the Battery Status API (Chromium only)."
+}
