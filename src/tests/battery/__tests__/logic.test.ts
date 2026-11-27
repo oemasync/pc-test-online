@@ -99,8 +99,8 @@ describe('battery logic', () => {
   });
 
   it('reduces battery phase', () => {
-    expect(reduceBatteryPhase('initializing', { type: 'unsupported' })).toBe('unsupported');
-    expect(reduceBatteryPhase('initializing', { type: 'ready', charging: true })).toBe('charging');
-    expect(reduceBatteryPhase('charging', { type: 'chargingchange', charging: false })).toBe('discharging');
+    expect(reduceBatteryPhase({ type: 'unsupported' })).toBe('unsupported');
+    expect(reduceBatteryPhase({ type: 'ready', charging: true })).toBe('charging');
+    expect(reduceBatteryPhase({ type: 'chargingchange', charging: false })).toBe('discharging');
   });
 });

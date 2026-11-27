@@ -43,7 +43,6 @@ export function toNullableSeconds(value: number): number | null {
 // Rate estimation requires >= 3 distinct level values (two observed changes);
 // a single 1% step is too noisy.
 export function computeRatePerSecond(samples: readonly BatterySample[]): number | null {
-  if (samples.length < 2) return null;
   const distinctLevels = new Set(samples.map((s) => s.level));
   if (distinctLevels.size < 3) return null;
 
@@ -62,7 +61,6 @@ export function computeRatePerSecond(samples: readonly BatterySample[]): number 
     t: g.sumT / g.count / 1000,
     level,
   }));
-  if (points.length < 3) return null;
 
   const n = points.length;
   let sumT = 0;
@@ -119,7 +117,7 @@ export function durationParts(seconds: number | null): DurationParts | null {
   };
 }
 
-export function reduceBatteryPhase(phase: BatteryPhase, event: BatteryEvent): BatteryPhase {
+export function reduceBatteryPhase(event: BatteryEvent): BatteryPhase {
   switch (event.type) {
     case 'unsupported':
       return 'unsupported';
