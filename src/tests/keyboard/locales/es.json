@@ -1,0 +1,8 @@
+{
+  "name": "Prueba de teclado",
+  "description": "Prueba tu teclado pulsando teclas y verificando que se registren correctamente.",
+  "instructions": "Pulsa cada tecla. Las teclas quedan marcadas una vez probadas.",
+  "testedLabel": "Teclas probadas",
+  "rolloverLabel": "Máximo simultáneo",
+  "recentLabel": "Eventos recientes"
+}

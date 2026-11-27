@@ -1,0 +1,60 @@
+{
+  "app": {
+    "name": "PC Test Online",
+    "title": "PC Test Online"
+  },
+  "nav": {
+    "overview": "Resumen general",
+    "summary": "Resumen"
+  },
+  "header": {
+    "source": "Código fuente",
+    "coffee": "Invítame a un café",
+    "language": "Idioma"
+  },
+  "buttons": {
+    "pass": "Aprobar",
+    "fail": "Fallar",
+    "skip": "Saltar",
+    "reset": "Reiniciar",
+    "export": "Exportar",
+    "print": "Imprimir"
+  },
+  "status": {
+    "pending": "Pendiente",
+    "running": "En curso",
+    "passed": "Aprobado",
+    "failed": "Fallido",
+    "skipped": "Saltado"
+  },
+  "theme": {
+    "toggle": "Cambiar tema",
+    "dark": "Oscuro",
+    "light": "Claro"
+  },
+  "footer": {
+    "reset": "Reiniciar",
+    "export": "Exportar"
+  },
+  "overview": {
+    "title": "Pruebas de hardware"
+  },
+  "summary": {
+    "title": "Resumen",
+    "empty": "Aún no se han ejecutado pruebas."
+  },
+  "notFound": {
+    "title": "404",
+    "message": "Página no encontrada."
+  },
+  "mediaErrors": {
+    "denied": "Permiso denegado. Permite el acceso en la configuración del navegador.",
+    "not-found": "No se encontró el dispositivo.",
+    "in-use": "El dispositivo está en uso por otra aplicación.",
+    "overconstrained": "Las restricciones solicitadas no se pueden cumplir.",
+    "insecure-context": "Esta página debe servirse por HTTPS.",
+    "unsupported": "Este navegador no admite la función.",
+    "unknown": "Ocurrió un error desconocido."
+  },
+  "tests": {}
+}

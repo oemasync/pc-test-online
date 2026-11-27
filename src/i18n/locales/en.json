@@ -1,0 +1,60 @@
+{
+  "app": {
+    "name": "PC Test Online",
+    "title": "PC Test Online"
+  },
+  "nav": {
+    "overview": "Overview",
+    "summary": "Summary"
+  },
+  "header": {
+    "source": "Source",
+    "coffee": "Buy me a coffee",
+    "language": "Language"
+  },
+  "buttons": {
+    "pass": "Pass",
+    "fail": "Fail",
+    "skip": "Skip",
+    "reset": "Reset",
+    "export": "Export",
+    "print": "Print"
+  },
+  "status": {
+    "pending": "Pending",
+    "running": "Running",
+    "passed": "Passed",
+    "failed": "Failed",
+    "skipped": "Skipped"
+  },
+  "theme": {
+    "toggle": "Toggle theme",
+    "dark": "Dark",
+    "light": "Light"
+  },
+  "footer": {
+    "reset": "Reset",
+    "export": "Export"
+  },
+  "overview": {
+    "title": "Hardware Tests"
+  },
+  "summary": {
+    "title": "Summary",
+    "empty": "No tests run yet."
+  },
+  "notFound": {
+    "title": "404",
+    "message": "Page not found."
+  },
+  "mediaErrors": {
+    "denied": "Permission denied. Allow access in browser settings.",
+    "not-found": "No device found.",
+    "in-use": "Device is in use by another app.",
+    "overconstrained": "Requested constraints cannot be satisfied.",
+    "insecure-context": "This page must be served over HTTPS.",
+    "unsupported": "This browser does not support the feature.",
+    "unknown": "An unknown error occurred."
+  },
+  "tests": {}
+}

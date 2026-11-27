@@ -1,0 +1,207 @@
+<template>
+  <div class="app" :data-theme="theme">
+    <header class="app__header">
+      <div class="app__header-left">
+        <a class="app__link" href="https://github.com/oemasync/pc-test-online" target="_blank" rel="noopener noreferrer">
+          {{ t('header.source') }}
+        </a>
+        <a class="app__link" href="https://buymeacoffee.com/omiinaya" target="_blank" rel="noopener noreferrer">
+          {{ t('header.coffee') }}
+        </a>
+      </div>
+      <div class="app__header-right">
+        <select v-model="locale" class="app__lang" aria-label="language">
+          <option v-for="l in locales" :key="l" :value="l">{{ l }}</option>
+        </select>
+        <button type="button" class="app__theme" @click="toggleTheme">
+          {{ t('theme.toggle') }}
+        </button>
+      </div>
+    </header>
+
+    <div class="app__body">
+      <aside class="app__sidebar app__sidebar--left">
+        <ul>
+          <li v-for="m in modules" :key="m.id">
+            <router-link :to="`/test/${m.id}`" class="app__test-link">
+              <StatusLight :status="status(m.id)" />
+              <span>{{ t(m.titleKey) }}</span>
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/summary" class="app__test-link">Summary</router-link>
+          </li>
+        </ul>
+      </aside>
+
+      <main class="app__main">
+        <router-view />
+      </main>
+
+      <aside class="app__sidebar app__sidebar--right">
+        <div v-for="m in modules" :key="m.id" class="app__timer">
+          <span>{{ t(m.titleKey) }}</span>
+          <span class="app__timer-value">{{ formatElapsed(m.id) }}</span>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="app__footer">
+      <button type="button" @click="reset">{{ t('buttons.reset') }}</button>
+      <button type="button" @click="exportReport">{{ t('buttons.export') }}</button>
+    </footer>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { getTestModules } from '@/core/registry'
+import { resultsStore } from '@/core/results'
+import { exportJson } from '@/core/report'
+import StatusLight from '@/ui/StatusLight.vue'
+
+const { t, locale } = useI18n()
+const locales = ['en', 'es']
+const modules = getTestModules()
+const theme = ref<'light' | 'dark'>('light')
+const tick = ref(0)
+
+let timer: ReturnType<typeof setInterval> | null = null
+
+onMounted(() => {
+  const stored = localStorage.getItem('theme')
+  if (stored === 'light' || stored === 'dark') {
+    theme.value = stored
+  } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    theme.value = 'dark'
+  }
+  applyTheme()
+  timer = setInterval(() => {
+    tick.value++
+  }, 100)
+})
+
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
+})
+
+function applyTheme(): void {
+  document.documentElement.setAttribute('data-theme', theme.value)
+}
+
+function toggleTheme(): void {
+  theme.value = theme.value === 'dark' ? 'light' : 'dark'
+  localStorage.setItem('theme', theme.value)
+  applyTheme()
+}
+
+function status(id: string) {
+  return resultsStore.getStatus(id)
+}
+
+function formatElapsed(id: string): string {
+  void tick.value
+  return (resultsStore.elapsed(id) / 1000).toFixed(2) + 's'
+}
+
+function reset(): void {
+  resultsStore.reset()
+}
+
+function exportReport(): void {
+  exportJson()
+}
+</script>
+
+<style>
+:root {
+  --bg: #ffffff;
+  --text: #111827;
+  --text-secondary: #6b7280;
+  --border: #e5e7eb;
+  --surface: #f9fafb;
+}
+[data-theme='dark'] {
+  --bg: #111827;
+  --text: #f9fafb;
+  --text-secondary: #9ca3af;
+  --border: #374151;
+  --surface: #1f2937;
+}
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+.app__header {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.app__header-left, .app__header-right {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+.app__body {
+  display: flex;
+  flex: 1;
+}
+.app__sidebar {
+  width: 200px;
+  padding: 0.5rem;
+  border-right: 1px solid var(--border);
+}
+.app__sidebar--right {
+  border-right: none;
+  border-left: 1px solid var(--border);
+}
+.app__main {
+  flex: 1;
+  padding: 1rem;
+}
+.app__footer {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--border);
+}
+.app__footer button {
+  flex: 1 1 0;
+}
+.app__test-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+}
+.app__timer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  padding: 0.25rem 0;
+}
+.app__timer-value {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 768px) {
+  .app__sidebar {
+    display: none;
+  }
+}
+
+@media print {
+  .app__header, .app__sidebar, .app__footer {
+    display: none;
+  }
+  .app__main {
+    padding: 0;
+  }
+}
+</style>
