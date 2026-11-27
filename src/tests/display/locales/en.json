@@ -1,0 +1,56 @@
+{
+  "title": "Display Test",
+  "description": "Check dead pixels, uniformity, gradients, sharpness, refresh rate, and HDR capability.",
+  "instructions": "Run each panel, mark any defect you see, then pass or fail.",
+  "pixelCycle": {
+    "title": "Dead / stuck pixel cycle",
+    "startFullscreen": "Start fullscreen cycle",
+    "exitHint": "Press Esc to exit fullscreen. Arrow keys or Space cycle colors; click advances.",
+    "currentColor": "Current color",
+    "markDefect": "Mark defect on this color",
+    "defects": "Marked defect colors",
+    "fullscreenUnavailable": "Fullscreen is unavailable in this browser"
+  },
+  "gradient": {
+    "title": "Gradient banding",
+    "description": "Look for visible steps in the gradients.",
+    "markBanding": "Banding visible"
+  },
+  "uniformity": {
+    "title": "Backlight bleed / uniformity",
+    "description": "View the black screen in a dark room.",
+    "startFullscreen": "Show black screen fullscreen",
+    "markBleed": "Bleed or glow visible",
+    "fullscreenUnavailable": "Fullscreen is unavailable in this browser"
+  },
+  "sharpness": {
+    "title": "Fine pattern sharpness",
+    "description": "1px checkerboard and lines scaled to the device pixel ratio.",
+    "markDefect": "Sharpness defect visible"
+  },
+  "refresh": {
+    "title": "Refresh rate",
+    "start": "Measure refresh rate",
+    "stop": "Stop",
+    "focusHint": "Keep this tab focused on the display under test.",
+    "estimatedHz": "Estimated rate",
+    "nearestStandard": "Nearest standard rate",
+    "medianInterval": "Median frame interval",
+    "samples": "Samples",
+    "rejected": "Rejected outliers",
+    "jitter": "Frame pacing jitter"
+  },
+  "capability": {
+    "title": "HDR / gamut capability",
+    "dynamicRange": "Dynamic range",
+    "colorGamut": "Color gamut",
+    "standard": "Standard",
+    "high": "High",
+    "srgb": "sRGB",
+    "p3": "Display P3",
+    "rec2020": "Rec. 2020"
+  },
+  "defectsFound": "Defects found",
+  "devicePixelRatio": "Device pixel ratio",
+  "fullscreenSupported": "Fullscreen supported"
+}
