@@ -1,59 +1,75 @@
 <template>
-    <TestLayout
-        :test-id="id"
-        :title="t('tests.microphone.title')"
-        :details="details"
-        :can-pass="canPass"
-    >
-        <template #instructions>
-            {{ t('tests.microphone.instructions') }}
-        </template>
+  <TestLayout
+    :test-id="id"
+    :title="t('tests.microphone.title')"
+    :details="details"
+    :can-pass="canPass"
+  >
+    <template #instructions>
+      {{ t('tests.microphone.instructions') }}
+    </template>
 
-        <PermissionPrompt :kind="errorKind" />
+    <PermissionPrompt :kind="errorKind" />
 
-        <div class="microphone-test">
-            <DeviceSelect
-                :devices="devices.devices.value"
-                :model-value="selectedDeviceId"
-                @update:model-value="onDeviceChange"
-            />
+    <div class="microphone-test">
+      <DeviceSelect
+        :devices="devices.devices.value"
+        :model-value="selectedDeviceId"
+        @update:model-value="onDeviceChange"
+      />
 
-            <div class="microphone-test__constraints">
-                <h3>{{ t('tests.microphone.constraints') }}</h3>
-                <label>
-                    <input v-model="echoCancellation" type="checkbox" />
-                    {{ t('tests.microphone.echoCancellation') }}
-                </label>
-                <label>
-                    <input v-model="noiseSuppression" type="checkbox" />
-                    {{ t('tests.microphone.noiseSuppression') }}
-                </label>
-                <label>
-                    <input v-model="autoGainControl" type="checkbox" />
-                    {{ t('tests.microphone.autoGainControl') }}
-                </label>
-                <p class="microphone-test__applied">
-                    {{ t('tests.microphone.applied') }}: echoCancellation={{ appliedEcho }},
-                    noiseSuppression={{ appliedNoise }}, autoGainControl={{ appliedAgc }}
-                </p>
-            </div>
+      <div class="microphone-test__constraints">
+        <h3>{{ t('tests.microphone.constraints') }}</h3>
+        <label>
+          <input
+            v-model="echoCancellation"
+            type="checkbox"
+          >
+          {{ t('tests.microphone.echoCancellation') }}
+        </label>
+        <label>
+          <input
+            v-model="noiseSuppression"
+            type="checkbox"
+          >
+          {{ t('tests.microphone.noiseSuppression') }}
+        </label>
+        <label>
+          <input
+            v-model="autoGainControl"
+            type="checkbox"
+          >
+          {{ t('tests.microphone.autoGainControl') }}
+        </label>
+        <p class="microphone-test__applied">
+          {{ t('tests.microphone.applied') }}: echoCancellation={{ appliedEcho }},
+          noiseSuppression={{ appliedNoise }}, autoGainControl={{ appliedAgc }}
+        </p>
+      </div>
 
-            <LevelMeter
-                :dbfs="dbfs"
-                :peak-dbfs="peakDbfs"
-                :clip-count="clipCount"
-                :noise-floor-dbfs="noiseFloorDbfs"
-            />
+      <LevelMeter
+        :dbfs="dbfs"
+        :peak-dbfs="peakDbfs"
+        :clip-count="clipCount"
+        :noise-floor-dbfs="noiseFloorDbfs"
+      />
 
-            <p v-if="silent" class="microphone-test__warning" role="alert">
-                {{ t('tests.microphone.silentWarning') }}
-            </p>
+      <p
+        v-if="silent"
+        class="microphone-test__warning"
+        role="alert"
+      >
+        {{ t('tests.microphone.silentWarning') }}
+      </p>
 
-            <Spectrum :analyser="analyser" />
+      <Spectrum :analyser="analyser" />
 
-            <Recorder :stream="stream" @recorded="onRecorded" />
-        </div>
-    </TestLayout>
+      <Recorder
+        :stream="stream"
+        @recorded="onRecorded"
+      />
+    </div>
+  </TestLayout>
 </template>
 
 <script setup lang="ts">
@@ -98,6 +114,7 @@ const analyser = ref<AnalyserNode | null>(null);
 const sourceNode = ref<MediaStreamAudioSourceNode | null>(null);
 
 const dbfs = ref(Number.NEGATIVE_INFINITY);
+const rms = ref(0);
 const peakDbfs = ref(Number.NEGATIVE_INFINITY);
 const peakState = ref<PeakHoldState>(createPeakHoldState());
 const clipCount = ref(0);
@@ -107,6 +124,10 @@ const silent = ref(false);
 const appliedEcho = ref(false);
 const appliedNoise = ref(false);
 const appliedAgc = ref(false);
+const sampleRate = ref(0);
+const channelCount = ref(0);
+const deviceId = ref('');
+const groupId = ref('');
 
 const recorded = ref(false);
 const mimeType = ref('');
@@ -117,14 +138,19 @@ const noiseWindow: number[] = [];
 let rafId = 0;
 
 const details = computed(() => ({
+    rms: rms.value,
     dbfs: Number.isFinite(dbfs.value) ? dbfs.value : -Infinity,
     peakDbfs: Number.isFinite(peakDbfs.value) ? peakDbfs.value : -Infinity,
     clipCount: clipCount.value,
     noiseFloorDbfs: Number.isFinite(noiseFloorDbfs.value) ? noiseFloorDbfs.value : -Infinity,
     silent: silent.value,
+    sampleRate: sampleRate.value,
+    channelCount: channelCount.value,
     echoCancellation: appliedEcho.value,
     noiseSuppression: appliedNoise.value,
     autoGainControl: appliedAgc.value,
+    deviceId: deviceId.value,
+    groupId: groupId.value,
     recorded: recorded.value,
     mimeType: mimeType.value,
 }));
@@ -185,6 +211,10 @@ async function startStream(): Promise<void> {
         appliedEcho.value = Boolean(settings.echoCancellation);
         appliedNoise.value = Boolean(settings.noiseSuppression);
         appliedAgc.value = Boolean(settings.autoGainControl);
+        sampleRate.value = Number(settings.sampleRate ?? 0);
+        channelCount.value = Number(settings.channelCount ?? 0);
+        deviceId.value = String(settings.deviceId ?? selectedDeviceId.value ?? '');
+        groupId.value = String(settings.groupId ?? '');
     }
     buildGraph(result.stream);
     resetMeters();
@@ -206,20 +236,21 @@ function analyse(): void {
     if (node) {
         const timeData = new Float32Array(node.fftSize);
         node.getFloatTimeDomainData(timeData);
-        const rms = computeRms(timeData);
-        const levelDb = rmsToDbfs(rms);
+        const rmsVal = computeRms(timeData);
+        const levelDb = rmsToDbfs(rmsVal);
+        rms.value = rmsVal;
         dbfs.value = levelDb;
         peakState.value = peakHoldReducer(peakState.value, levelDb, performance.now());
         peakDbfs.value = peakState.value.peak;
         clipCount.value += countClipped(timeData);
-        noiseWindow.push(rms);
+        noiseWindow.push(rmsVal);
         if (noiseWindow.length > 200) noiseWindow.shift();
         if (noiseWindow.length >= 10) {
             const arr = new Float32Array(noiseWindow);
             noiseFloorDbfs.value = rmsToDbfs(estimateNoiseFloor(Array.from(arr)));
         }
         const now = performance.now();
-        rmsHistory.push({ t: now, rms });
+        rmsHistory.push({ t: now, rms: rmsVal });
         if (rmsHistory.length > 200) rmsHistory.shift();
         silent.value = detectSilence(rmsHistory, DEFAULT_SILENCE_THRESHOLD, 2000);
     }
@@ -253,6 +284,10 @@ onBeforeUnmount(() => {
     if (rafId) cancelAnimationFrame(rafId);
     media.stop();
     teardownGraph();
+    if (audioContext.value) {
+        audioContext.value.close();
+        audioContext.value = null;
+    }
 });
 </script>
 
@@ -266,7 +301,7 @@ onBeforeUnmount(() => {
     display: block;
 }
 .microphone-test__warning {
-    color: #ef4444;
+    color: var(--color-danger, #ef4444);
 }
 .microphone-test__applied {
     font-size: 0.85rem;

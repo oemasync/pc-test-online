@@ -1,19 +1,32 @@
 <template>
-    <div class="recorder">
-        <div class="recorder__actions">
-            <button type="button" data-testid="record-button" @click="toggleRecord">
-                {{
-                    recording
-                        ? t('tests.microphone.stopRecordLabel')
-                        : t('tests.microphone.recordLabel')
-                }}
-            </button>
-            <button type="button" data-testid="play-button" :disabled="!audioUrl" @click="play">
-                {{ t('tests.microphone.playLabel') }}
-            </button>
-        </div>
-        <audio v-if="audioUrl" ref="audioEl" :src="audioUrl" />
+  <div class="recorder">
+    <div class="recorder__actions">
+      <button
+        type="button"
+        data-testid="record-button"
+        @click="toggleRecord"
+      >
+        {{
+          recording
+            ? t('tests.microphone.stopRecordLabel')
+            : t('tests.microphone.recordLabel')
+        }}
+      </button>
+      <button
+        type="button"
+        data-testid="play-button"
+        :disabled="!audioUrl"
+        @click="play"
+      >
+        {{ t('tests.microphone.playLabel') }}
+      </button>
     </div>
+    <audio
+      v-if="audioUrl"
+      ref="audioEl"
+      :src="audioUrl"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">

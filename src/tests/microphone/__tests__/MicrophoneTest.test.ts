@@ -15,8 +15,10 @@ class FakeAnalyser {
     disconnect() {}
 }
 
+const closeSpy = vi.fn();
 class FakeAudioContext {
     state = 'running';
+    close = closeSpy;
     createAnalyser() {
         return new FakeAnalyser();
     }
@@ -45,6 +47,7 @@ class FakeMediaRecorder {
 
 describe('MicrophoneTest', () => {
     beforeEach(() => {
+        closeSpy.mockClear();
         vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
             return setTimeout(() => cb(performance.now()), 0) as unknown as number;
         });
@@ -76,6 +79,8 @@ describe('MicrophoneTest', () => {
     });
 
     it('releases tracks on unmount', async () => {
+        const cancelSpy = vi.fn();
+        vi.stubGlobal('cancelAnimationFrame', cancelSpy);
         const track = { stop: vi.fn(), getSettings: () => ({}) };
         const fakeStream = { getAudioTracks: () => [track], getTracks: () => [track] };
         navigator.mediaDevices.getUserMedia = vi.fn().mockResolvedValue(fakeStream);
@@ -84,5 +89,7 @@ describe('MicrophoneTest', () => {
         wrapper.unmount();
         await new Promise(r => setTimeout(r, 10));
         expect(track.stop).toHaveBeenCalled();
+        expect(cancelSpy).toHaveBeenCalled();
+        expect(closeSpy).toHaveBeenCalled();
     });
 });

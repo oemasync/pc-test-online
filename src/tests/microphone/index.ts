@@ -7,6 +7,7 @@ const module: TestModule = {
     titleKey: 'tests.microphone.title',
     descriptionKey: 'tests.microphone.description',
     component: () => import('./MicrophoneTest.vue'),
+    isSupported: () => typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia,
 };
 
 export default module;

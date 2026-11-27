@@ -1,8 +1,18 @@
 <template>
-    <div class="spectrum">
-        <canvas ref="waveCanvas" class="spectrum__canvas" width="320" height="80" />
-        <canvas ref="freqCanvas" class="spectrum__canvas" width="320" height="80" />
-    </div>
+  <div class="spectrum">
+    <canvas
+      ref="waveCanvas"
+      class="spectrum__canvas"
+      width="320"
+      height="80"
+    />
+    <canvas
+      ref="freqCanvas"
+      class="spectrum__canvas"
+      width="320"
+      height="80"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
