@@ -6,13 +6,13 @@
  */
 
 export interface PeakHoldState {
-  readonly peak: number;
-  readonly peakAt: number;
+    readonly peak: number;
+    readonly peakAt: number;
 }
 
 export interface SilenceSample {
-  readonly t: number;
-  readonly rms: number;
+    readonly t: number;
+    readonly rms: number;
 }
 
 const DEFAULT_CLIP_THRESHOLD = 0.99;
@@ -28,16 +28,16 @@ const NOISE_FLOOR_PERCENTILE = 0.1;
  * AnalyserNode.getFloatTimeDomainData.
  */
 export function computeRms(samples: Float32Array): number {
-  if (samples.length === 0) {
-    return 0;
-  }
+    if (samples.length === 0) {
+        return 0;
+    }
 
-  let sumSquares = 0;
-  for (let i = 0; i < samples.length; i += 1) {
-    const sample = samples[i] as number;
-    sumSquares += sample * sample;
-  }
-  return Math.sqrt(sumSquares / samples.length);
+    let sumSquares = 0;
+    for (let i = 0; i < samples.length; i += 1) {
+        const sample = samples[i] as number;
+        sumSquares += sample * sample;
+    }
+    return Math.sqrt(sumSquares / samples.length);
 }
 
 /**
@@ -46,17 +46,17 @@ export function computeRms(samples: Float32Array): number {
  * Returns -Infinity for an RMS of zero or below.
  */
 export function rmsToDbfs(rms: number): number {
-  if (rms <= 0) {
-    return Number.NEGATIVE_INFINITY;
-  }
-  return 20 * Math.log10(rms);
+    if (rms <= 0) {
+        return Number.NEGATIVE_INFINITY;
+    }
+    return 20 * Math.log10(rms);
 }
 
 /**
  * Create a fresh peak-hold state.
  */
 export function createPeakHoldState(): PeakHoldState {
-  return { peak: Number.NEGATIVE_INFINITY, peakAt: 0 };
+    return { peak: Number.NEGATIVE_INFINITY, peakAt: 0 };
 }
 
 /**
@@ -67,46 +67,45 @@ export function createPeakHoldState(): PeakHoldState {
  * current level.
  */
 export function peakHoldReducer(
-  state: PeakHoldState,
-  levelDb: number,
-  nowMs: number,
-  holdMs: number = DEFAULT_PEAK_HOLD_MS,
-  decayDbPerSecond: number = DEFAULT_PEAK_DECAY_DB_PER_SECOND,
+    state: PeakHoldState,
+    levelDb: number,
+    nowMs: number,
+    holdMs: number = DEFAULT_PEAK_HOLD_MS,
+    decayDbPerSecond: number = DEFAULT_PEAK_DECAY_DB_PER_SECOND
 ): PeakHoldState {
-  if (levelDb >= state.peak) {
-    return { peak: levelDb, peakAt: nowMs };
-  }
+    if (levelDb >= state.peak) {
+        return { peak: levelDb, peakAt: nowMs };
+    }
 
-  const elapsed = nowMs - state.peakAt;
-  if (elapsed <= holdMs) {
-    return state;
-  }
+    const elapsed = nowMs - state.peakAt;
+    if (elapsed <= holdMs) {
+        return state;
+    }
 
-  const decayed =
-    state.peak - (decayDbPerSecond * (elapsed - holdMs)) / 1000;
-  const newPeak = Math.max(decayed, levelDb);
+    const decayed = state.peak - (decayDbPerSecond * (elapsed - holdMs)) / 1000;
+    const newPeak = Math.max(decayed, levelDb);
 
-  if (newPeak <= levelDb) {
-    return { peak: levelDb, peakAt: nowMs };
-  }
-  return { peak: newPeak, peakAt: state.peakAt };
+    if (newPeak <= levelDb) {
+        return { peak: levelDb, peakAt: nowMs };
+    }
+    return { peak: newPeak, peakAt: state.peakAt };
 }
 
 /**
  * Count the clipped samples in a block.
  */
 export function countClipped(
-  samples: Float32Array,
-  threshold: number = DEFAULT_CLIP_THRESHOLD,
+    samples: Float32Array,
+    threshold: number = DEFAULT_CLIP_THRESHOLD
 ): number {
-  let count = 0;
-  for (let i = 0; i < samples.length; i += 1) {
-    const sample = samples[i] as number;
-    if (Math.abs(sample) >= threshold) {
-      count += 1;
+    let count = 0;
+    for (let i = 0; i < samples.length; i += 1) {
+        const sample = samples[i] as number;
+        if (Math.abs(sample) >= threshold) {
+            count += 1;
+        }
     }
-  }
-  return count;
+    return count;
 }
 
 /**
@@ -115,14 +114,14 @@ export function countClipped(
  * the estimate.
  */
 export function estimateNoiseFloor(rmsHistory: readonly number[]): number {
-  if (rmsHistory.length === 0) {
-    return 0;
-  }
+    if (rmsHistory.length === 0) {
+        return 0;
+    }
 
-  const sorted = Array.from(rmsHistory).sort((a, b) => a - b);
-  const drop = Math.max(1, Math.floor(sorted.length * NOISE_FLOOR_PERCENTILE));
-  const index = Math.min(drop, sorted.length - 1);
-  return sorted[index] as number;
+    const sorted = Array.from(rmsHistory).sort((a, b) => a - b);
+    const drop = Math.max(1, Math.floor(sorted.length * NOISE_FLOOR_PERCENTILE));
+    const index = Math.min(drop, sorted.length - 1);
+    return sorted[index] as number;
 }
 
 /**
@@ -130,32 +129,30 @@ export function estimateNoiseFloor(rmsHistory: readonly number[]): number {
  * below `thresholdRms` must span at least `durationMs` milliseconds.
  */
 export function detectSilence(
-  history: readonly SilenceSample[],
-  thresholdRms: number,
-  durationMs: number,
+    history: readonly SilenceSample[],
+    thresholdRms: number,
+    durationMs: number
 ): boolean {
-  if (history.length === 0) {
-    return false;
-  }
-
-  const lastIndex = history.length - 1;
-  if ((history[lastIndex] as SilenceSample).rms > thresholdRms) {
-    return false;
-  }
-
-  let firstIndex = lastIndex;
-  while (firstIndex > 0) {
-    const prev = history[firstIndex - 1] as SilenceSample;
-    if (prev.rms > thresholdRms) {
-      break;
+    if (history.length === 0) {
+        return false;
     }
-    firstIndex -= 1;
-  }
 
-  const span =
-    (history[lastIndex] as SilenceSample).t -
-    (history[firstIndex] as SilenceSample).t;
-  return span >= durationMs;
+    const lastIndex = history.length - 1;
+    if ((history[lastIndex] as SilenceSample).rms > thresholdRms) {
+        return false;
+    }
+
+    let firstIndex = lastIndex;
+    while (firstIndex > 0) {
+        const prev = history[firstIndex - 1] as SilenceSample;
+        if (prev.rms > thresholdRms) {
+            break;
+        }
+        firstIndex -= 1;
+    }
+
+    const span = (history[lastIndex] as SilenceSample).t - (history[firstIndex] as SilenceSample).t;
+    return span >= durationMs;
 }
 
 /**
@@ -164,33 +161,30 @@ export function detectSilence(
  * The bin width is `sampleRate / fftSize`; `binCount` is typically
  * `fftSize / 2`.
  */
-export function frequencyBinCentres(
-  binCount: number,
-  sampleRate: number,
-): number[] {
-  const result: number[] = [];
-  const nyquist = sampleRate / 2;
-  for (let i = 0; i < binCount; i += 1) {
-    result.push((i * nyquist) / binCount);
-  }
-  return result;
+export function frequencyBinCentres(binCount: number, sampleRate: number): number[] {
+    const result: number[] = [];
+    const nyquist = sampleRate / 2;
+    for (let i = 0; i < binCount; i += 1) {
+        result.push((i * nyquist) / binCount);
+    }
+    return result;
 }
 
 /**
  * Index of the bin with the largest magnitude.
  */
 export function peakBinIndex(magnitudes: Float32Array): number {
-  if (magnitudes.length === 0) {
-    return -1;
-  }
-  let bestIndex = 0;
-  let bestValue = magnitudes[0] as number;
-  for (let i = 1; i < magnitudes.length; i += 1) {
-    const value = magnitudes[i] as number;
-    if (value > bestValue) {
-      bestValue = value;
-      bestIndex = i;
+    if (magnitudes.length === 0) {
+        return -1;
     }
-  }
-  return bestIndex;
+    let bestIndex = 0;
+    let bestValue = magnitudes[0] as number;
+    for (let i = 1; i < magnitudes.length; i += 1) {
+        const value = magnitudes[i] as number;
+        if (value > bestValue) {
+            bestValue = value;
+            bestIndex = i;
+        }
+    }
+    return bestIndex;
 }
