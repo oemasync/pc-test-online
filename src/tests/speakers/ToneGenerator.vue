@@ -37,6 +37,7 @@
     <p
       v-if="playing"
       data-testid="tone-playing"
+      aria-live="polite"
     >
       playing
     </p>
@@ -74,19 +75,19 @@ async function start(): Promise<void> {
 function stop(): void {
     try {
         osc?.stop();
-    } catch {
-        /* noop */
-    }
+    } catch (err) {
+            console.debug("audio: node already stopped or disconnected", err)
+        }
     try {
         osc?.disconnect();
-    } catch {
-        /* noop */
-    }
+    } catch (err) {
+            console.debug("audio: node already stopped or disconnected", err)
+        }
     try {
         gain?.disconnect();
-    } catch {
-        /* noop */
-    }
+    } catch (err) {
+            console.debug("audio: node already stopped or disconnected", err)
+        }
     osc = null;
     gain = null;
     playing.value = false;

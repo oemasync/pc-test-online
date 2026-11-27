@@ -43,11 +43,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import TestLayout from '@/ui/TestLayout.vue';
 import DeviceSelect from '@/ui/DeviceSelect.vue';
 import { useDevices } from '@/lib/media';
+import { getAudioContext } from '@/lib/audio';
 import { detectSinkIdSupport, audibleRangeSpanOctaves } from './logic';
 import ChannelTest from './ChannelTest.vue';
 import ToneGenerator from './ToneGenerator.vue';
@@ -68,13 +69,14 @@ const sweepHigh = ref<number | null>(null);
 const chordPlayed = ref(false);
 const polarityPlayed = ref(false);
 
-const sinkSupported = computed(
-    () =>
-        detectSinkIdSupport(
-            typeof AudioContext !== 'undefined' && 'setSinkId' in AudioContext.prototype,
-            typeof HTMLMediaElement !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype
-        ) !== 'none'
+const sinkSupport = computed(() =>
+    detectSinkIdSupport(
+        typeof AudioContext !== 'undefined' && 'setSinkId' in AudioContext.prototype,
+        typeof HTMLMediaElement !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype,
+    ),
 );
+
+const sinkSupported = computed(() => sinkSupport.value !== 'none');
 
 const canPass = computed(
     () =>
@@ -115,12 +117,30 @@ function onRange(low: number | null, high: number | null): void {
     sweepLow.value = low;
     sweepHigh.value = high;
 }
+
+async function applyOutputDevice(deviceId: string): Promise<void> {
+    if (sinkSupport.value !== 'audioContext') return;
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const sinkCtx = ctx as AudioContext & { setSinkId?: (id: string) => Promise<void> };
+    if (typeof sinkCtx.setSinkId !== 'function') return;
+    try {
+        await sinkCtx.setSinkId(deviceId);
+    } catch (err) {
+        console.debug('audio: setSinkId failed', err);
+    }
+}
+
+watch(selectedDeviceId, (id) => {
+    void applyOutputDevice(id);
+});
 </script>
 
 <style scoped>
 .notice {
     padding: 0.5rem;
-    background: var(--color-warning-bg, #fef3c7);
+    background: var(--surface, #f9fafb);
+    border: 1px solid var(--border, #e5e7eb);
     border-radius: 4px;
 }
 .device-row {

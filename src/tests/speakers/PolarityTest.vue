@@ -18,6 +18,7 @@
     <p
       v-if="playing"
       data-testid="polarity-playing"
+      aria-live="polite"
     >
       {{ playing }}
     </p>
@@ -78,13 +79,13 @@ function stop(): void {
     for (const o of oscs) {
         try {
             o.stop();
-        } catch {
-            /* noop */
+        } catch (err) {
+            console.debug("audio: node already stopped or disconnected", err)
         }
         try {
             o.disconnect();
-        } catch {
-            /* noop */
+        } catch (err) {
+            console.debug("audio: node already stopped or disconnected", err)
         }
     }
     oscs.length = 0;
@@ -103,6 +104,6 @@ onUnmounted(() => {
 }
 .hint {
     font-size: 0.85rem;
-    color: var(--color-text-muted, #666);
+    color: var(--text-secondary, #6b7280);
 }
 </style>

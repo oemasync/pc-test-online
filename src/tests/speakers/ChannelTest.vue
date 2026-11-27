@@ -27,6 +27,7 @@
     <p
       v-if="playing"
       data-testid="channel-playing"
+      aria-live="polite"
     >
       {{ playing }}
     </p>
@@ -75,18 +76,18 @@ async function play(channel: 'left' | 'right' | 'both'): Promise<void> {
     osc.onended = () => {
         try {
             osc.disconnect();
-        } catch {
-            /* noop */
+        } catch (err) {
+            console.debug("audio: node already stopped or disconnected", err)
         }
         try {
             panner.disconnect();
-        } catch {
-            /* noop */
+        } catch (err) {
+            console.debug("audio: node already stopped or disconnected", err)
         }
         try {
             gain.disconnect();
-        } catch {
-            /* noop */
+        } catch (err) {
+            console.debug("audio: node already stopped or disconnected", err)
         }
     };
 }
@@ -95,15 +96,20 @@ onUnmounted(() => {
     for (const o of activeOscs) {
         try {
             o.stop();
-        } catch {
-            /* noop */
+        } catch (err) {
+            console.debug('audio: node already stopped or disconnected', err);
+        }
+        try {
+            o.disconnect();
+        } catch (err) {
+            console.debug('audio: node already stopped or disconnected', err);
         }
     }
     for (const n of activeNodes) {
         try {
             n.disconnect();
-        } catch {
-            /* noop */
+        } catch (err) {
+            console.debug('audio: node already stopped or disconnected', err);
         }
     }
     activeOscs.length = 0;

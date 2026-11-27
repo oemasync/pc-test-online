@@ -24,7 +24,10 @@
         {{ t('tests.speakers.markHigh') }}
       </button>
     </div>
-    <p data-testid="audible-range">
+    <p
+      data-testid="audible-range"
+      aria-live="polite"
+    >
       {{ state.lowHz ?? '-' }} - {{ state.highHz ?? '-' }}
     </p>
   </section>
@@ -92,14 +95,14 @@ function emitRange(): void {
 function stop(): void {
     try {
         osc?.stop();
-    } catch {
-        /* noop */
-    }
+    } catch (err) {
+            console.debug("audio: node already stopped or disconnected", err)
+        }
     try {
         osc?.disconnect();
-    } catch {
-        /* noop */
-    }
+    } catch (err) {
+            console.debug("audio: node already stopped or disconnected", err)
+        }
     osc = null;
 }
 

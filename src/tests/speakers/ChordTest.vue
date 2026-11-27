@@ -56,13 +56,13 @@ function stop(): void {
     for (const o of oscs) {
         try {
             o.stop();
-        } catch {
-            /* noop */
+        } catch (err) {
+            console.debug("audio: node already stopped or disconnected", err)
         }
         try {
             o.disconnect();
-        } catch {
-            /* noop */
+        } catch (err) {
+            console.debug("audio: node already stopped or disconnected", err)
         }
     }
     oscs.length = 0;
