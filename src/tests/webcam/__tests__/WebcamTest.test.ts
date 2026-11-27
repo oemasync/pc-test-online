@@ -81,6 +81,25 @@ describe('WebcamTest', () => {
     })
   })
 
+  it('cancels the animation-frame fallback on unmount', async () => {
+    Object.defineProperty(HTMLVideoElement.prototype, 'requestVideoFrameCallback', {
+      configurable: true,
+      value: undefined,
+    })
+    const requestAnimationFrame = vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1)
+    const cancelAnimationFrame = vi.spyOn(window, 'cancelAnimationFrame')
+
+    const wrapper = mountWithPlugins(WebcamTest)
+    await flushPromises()
+    wrapper.unmount()
+    await flushPromises()
+
+    expect(requestAnimationFrame).toHaveBeenCalled()
+    expect(cancelAnimationFrame).toHaveBeenCalled()
+
+    requestAnimationFrame.mockRestore()
+    cancelAnimationFrame.mockRestore()
+  })
   it('stops tracks and cancels the frame callback on unmount', async () => {
     const wrapper = mountWithPlugins(WebcamTest)
     await flushPromises()

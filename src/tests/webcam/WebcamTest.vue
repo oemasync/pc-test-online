@@ -122,7 +122,7 @@ import TestLayout from '@/ui/TestLayout.vue'
 import DeviceSelect from '@/ui/DeviceSelect.vue'
 import PermissionPrompt from '@/ui/PermissionPrompt.vue'
 import StatTile from '@/ui/StatTile.vue'
-import { useDevices, useMediaStream } from '@/lib/media'
+import { useDevices, useMediaStream, mapMediaError } from '@/lib/media'
 import type { MediaErrorKind } from '@/lib/media'
 import {
   estimateFps,
@@ -286,8 +286,8 @@ async function attachAndMeasure(): Promise<void> {
   measuredVideo = video
   try {
     await video.play()
-  } catch {
-    // Autoplay can be blocked; the user can still interact.
+  } catch (err) {
+    error.value = mapMediaError(err)
   }
 
   const currentTrack = stream.getVideoTracks()[0] ?? null
@@ -382,7 +382,7 @@ onUnmounted(() => {
   width: 100%;
   max-width: 640px;
   border-radius: 8px;
-  background: #000;
+  background: var(--bg, #000);
 }
 .webcam-test__video--mirror {
   transform: scaleX(-1);
@@ -415,7 +415,7 @@ onUnmounted(() => {
   padding-left: 1.25rem;
 }
 .webcam-test__warning {
-  color: #ef4444;
+  color: var(--color-danger, #ef4444);
 }
 .webcam-test__canvas {
   display: none;
