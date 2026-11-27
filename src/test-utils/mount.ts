@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
 import type { Component } from 'vue'
+import type { Plugin } from 'vue'
 import type { MountingOptions } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { i18n } from '@/i18n'
@@ -19,8 +20,7 @@ export function mountWithPlugins(
     ...rest,
     global: {
       ...globalRest,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      plugins: [i18n, router, ...((plugins as unknown[]) ?? [])] as any,
+      plugins: [i18n, router, ...((plugins as unknown[]) ?? [])] as Plugin[],
     },
   })
 }

@@ -1,5 +1,9 @@
 <template>
-  <div class="stat-tile">
+  <div
+    class="stat-tile"
+    aria-live="polite"
+    aria-atomic="true"
+  >
     <span class="stat-tile__label">{{ label }}</span>
     <span class="stat-tile__value">{{ value }}</span>
   </div>
