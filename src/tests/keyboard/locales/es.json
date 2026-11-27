@@ -1,5 +1,5 @@
 {
-  "name": "Prueba de teclado",
+  "title": "Prueba de teclado",
   "description": "Prueba tu teclado pulsando teclas y verificando que se registren correctamente.",
   "instructions": "Pulsa cada tecla. Las teclas quedan marcadas una vez probadas.",
   "testedLabel": "Teclas probadas",

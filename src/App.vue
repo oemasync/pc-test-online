@@ -127,8 +127,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { setLocale } from '@/i18n'
 import { getTestModules } from '@/core/registry'
 import type { TestModule } from '@/core/types'
 import { elapsed, getStatus, reset as resetStore, skip } from '@/core/results'
@@ -138,12 +139,14 @@ import StatusLight from '@/ui/StatusLight.vue'
 const { t, locale } = useI18n()
 const locales = ['en', 'es']
 const modules = getTestModules()
+watch(locale, (value) => setLocale(value as 'en' | 'es'))
 const theme = ref<'light' | 'dark'>('light')
 const tick = ref(0)
 
 let timer: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
+  setLocale(locale.value as 'en' | 'es')
   const stored = localStorage.getItem('theme')
   if (stored === 'light' || stored === 'dark') {
     theme.value = stored
@@ -199,6 +202,12 @@ function exportReport(): void {
   --text-secondary: #6b7280;
   --border: #e5e7eb;
   --surface: #f9fafb;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  --color-warning-bg: #fef3c7;
+  --color-success: #22c55e;
+  --color-accent: #2563eb;
+  --color-text-muted: #6b7280;
 }
 [data-theme='dark'] {
   --bg: #111827;
@@ -206,6 +215,12 @@ function exportReport(): void {
   --text-secondary: #9ca3af;
   --border: #374151;
   --surface: #1f2937;
+  --color-danger: #f87171;
+  --color-warning: #fbbf24;
+  --color-warning-bg: #422006;
+  --color-success: #4ade80;
+  --color-accent: #60a5fa;
+  --color-text-muted: #9ca3af;
 }
 .app {
   display: flex;

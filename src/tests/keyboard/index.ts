@@ -4,7 +4,7 @@ const module: TestModule = {
   id: 'keyboard',
   order: 10,
   icon: '⌨️',
-  titleKey: 'tests.keyboard.name',
+  titleKey: 'tests.keyboard.title',
   descriptionKey: 'tests.keyboard.description',
   component: () => import('./KeyboardTest.vue'),
 }

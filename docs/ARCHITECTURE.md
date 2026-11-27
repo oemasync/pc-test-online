@@ -70,7 +70,6 @@ Action buttons: Pass, Fail, Skip, Retest. Fail reveals a note textarea; confirmi
 
 ```ts
 import type { TestModule } from '@/core/types'
-import ExampleTest from './ExampleTest.vue'
 
 const mod: TestModule = {
   id: 'example',
@@ -90,19 +89,21 @@ export default mod
 <template>
   <TestLayout
     test-id="example"
-    title="Example"
+    :title="t('tests.example.title')"
     :details="details"
     :can-pass="passed"
   >
-    <p>Do the thing.</p>
-    <template #instructions>Follow the steps.</template>
+    <p>{{ t('tests.example.body') }}</p>
+    <template #instructions>{{ t('tests.example.instructions') }}</template>
   </TestLayout>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import TestLayout from '@/ui/TestLayout.vue'
 
+const { t } = useI18n()
 const count = ref(0)
 const passed = computed(() => count.value >= 1)
 const details = computed(() => ({ count: count.value }))
@@ -112,13 +113,23 @@ const details = computed(() => ({ count: count.value }))
 `src/tests/example/locales/en.json`:
 
 ```json
-{ "title": "Example test", "description": "An example module." }
+{
+  "title": "Example test",
+  "description": "An example module.",
+  "body": "Do the thing.",
+  "instructions": "Follow the steps."
+}
 ```
 
 `src/tests/example/locales/es.json`:
 
 ```json
-{ "title": "Prueba de ejemplo", "description": "Un módulo de ejemplo." }
+{
+  "title": "Prueba de ejemplo",
+  "description": "Un módulo de ejemplo.",
+  "body": "Haz la cosa.",
+  "instructions": "Sigue los pasos."
+}
 ```
 
 ## Device helpers
@@ -129,8 +140,26 @@ const details = computed(() => ({ count: count.value }))
 
 - Playwright: Chromium with `--use-fake-device-for-media-stream` and `--use-fake-ui-for-media-stream`.
 - webServer: `npm run build && npm run preview` on port 4173.
-- Shell guarantees `data-testid`s: `pass-button`, `fail-button`, `skip-button`, `reset-button`, `export-button`, `status-light-<id>` (with `data-status`).
+- Shell guarantees `data-testid`s: `pass-button`, `fail-button`, `skip-button`, `reset-button`, `export-button`, `retest-button`, `fail-confirm-button`, `status-light-<id>` (with `data-status`).
 - Reach a module at `/test/<id>`.
+- Set `E2E_PORT` env var to run on a non-default port (default 4173).
+- reuseExistingServer is false: parallel workers must not share a preview server.
+
+## Theme tokens (only allowed colours)
+
+Light (`:root`) and dark (`[data-theme='dark']`) define the complete semantic token set. Modules may use only these variables; no alias names.
+
+- `--bg`
+- `--text`
+- `--text-secondary`
+- `--border`
+- `--surface`
+- `--color-danger`
+- `--color-warning`
+- `--color-warning-bg`
+- `--color-success`
+- `--color-accent`
+- `--color-text-muted`
 
 ## Testing helpers
 

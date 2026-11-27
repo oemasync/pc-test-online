@@ -19,8 +19,12 @@
     "reset": "Reiniciar",
     "export": "Exportar",
     "print": "Imprimir",
+    "prev": "Anterior",
+    "next": "Siguiente",
     "unsupported": "No compatible con este navegador",
     "confirm": "Confirmar",
+    "failNote": "Nota de fallo",
+    "cancel": "Cancelar",
     "retry": "Reintentar"
   },
   "status": {

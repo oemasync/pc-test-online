@@ -2,6 +2,7 @@
   <section class="test-layout">
     <header class="test-layout__header">
       <h2>{{ title }}</h2>
+      <StatusLight :status="status" />
     </header>
     <p class="test-layout__instructions">
       <slot name="instructions" />
@@ -13,12 +14,23 @@
       v-if="failing"
       class="test-layout__note"
     >
-      <textarea v-model="note" />
+      <label for="fail-note">{{ t('buttons.failNote') }}</label>
+      <textarea
+        id="fail-note"
+        v-model="note"
+      />
       <button
         type="button"
+        data-testid="fail-confirm-button"
         @click="confirmFail"
       >
         {{ t('buttons.confirm') }}
+      </button>
+      <button
+        type="button"
+        @click="cancelFail"
+      >
+        {{ t('buttons.cancel') }}
       </button>
     </div>
     <div class="test-layout__actions">
@@ -50,6 +62,7 @@
       <button
         type="button"
         class="test-layout__btn"
+        data-testid="retest-button"
         @click="onRetest"
       >
         {{ t('buttons.retry') }}
@@ -59,9 +72,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { pass, fail, skip, start } from '@/core/results'
+import { pass, fail, skip, start, getStatus } from '@/core/results'
+import StatusLight from '@/ui/StatusLight.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -80,6 +94,8 @@ const { t } = useI18n()
 const failing = ref(false)
 const note = ref('')
 
+const status = computed(() => getStatus(props.testId))
+
 function onPass(): void {
   pass(props.testId, props.details)
 }
@@ -90,6 +106,11 @@ function onFail(): void {
 
 function confirmFail(): void {
   fail(props.testId, props.details, note.value)
+  failing.value = false
+  note.value = ''
+}
+
+function cancelFail(): void {
   failing.value = false
   note.value = ''
 }

@@ -1,4 +1,5 @@
 import type { TestModule } from './types'
+import { moduleIdFromPath } from './paths'
 
 type ModuleEntry = { default: TestModule }
 
@@ -13,7 +14,7 @@ export function validateModuleEntries(entries: ModuleEntryRecord[]): TestModule[
   const seen = new Map<string, string>()
   const list: TestModule[] = []
   for (const { path, module: mod } of entries) {
-    const dir = path.split('/')[2] ?? ''
+    const dir = moduleIdFromPath(path)
     const entry = mod.default
     if (seen.has(entry.id)) {
       throw new Error(`Duplicate test module id: ${entry.id}`)
@@ -24,14 +25,16 @@ export function validateModuleEntries(entries: ModuleEntryRecord[]): TestModule[
     seen.set(entry.id, dir)
     list.push(entry)
   }
-  return list
+  return list.sort((a, b) => a.order - b.order)
 }
 
+const entries: ModuleEntryRecord[] = Object.entries(modules).map(([path, mod]) => ({ path, module: mod }))
+const validated: readonly TestModule[] = Object.freeze(validateModuleEntries(entries))
+
 export function getTestModules(): TestModule[] {
-  const entries: ModuleEntryRecord[] = Object.entries(modules).map(([path, mod]) => ({ path, module: mod }))
-  return validateModuleEntries(entries).sort((a, b) => a.order - b.order)
+  return [...validated]
 }
 
 export function getTestModule(id: string): TestModule | undefined {
-  return getTestModules().find((m) => m.id === id)
+  return validated.find((m) => m.id === id)
 }
