@@ -309,7 +309,7 @@ onUnmounted(() => {
 .gamepad-test__empty,
 .gamepad-test__unsupported {
     padding: 1rem;
-    border: 1px dashed var(--border, #e5e7eb);
+    border: 1px dashed var(--border);
     border-radius: 0.5rem;
 }
 @media (max-width: 720px) {

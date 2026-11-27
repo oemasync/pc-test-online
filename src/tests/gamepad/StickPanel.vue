@@ -101,24 +101,24 @@ const plottedSamples = computed(() => props.samples.slice(-120));
     width: 100%;
     max-width: 220px;
     aspect-ratio: 1;
-    background: var(--surface, #f9fafb);
-    border: 1px solid var(--border, #e5e7eb);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 50%;
 }
 .stick-panel__ring {
     fill: none;
-    stroke: var(--border, #e5e7eb);
+    stroke: var(--border);
     stroke-width: 0.02;
 }
 .stick-panel__dot {
-    fill: #f59e0b;
+    fill: var(--color-warning);
 }
 .stick-panel__sample {
-    fill: #3b82f6;
+    fill: var(--color-accent);
     opacity: 0.6;
 }
 .stick-panel__warning {
-    color: #ef4444;
+    color: var(--color-danger);
     font-weight: 600;
 }
 </style>

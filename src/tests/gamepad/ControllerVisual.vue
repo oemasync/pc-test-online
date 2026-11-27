@@ -63,17 +63,17 @@ const { t } = useI18n();
     height: auto;
 }
 .controller-visual__body {
-    fill: var(--surface, #f9fafb);
-    stroke: var(--border, #e5e7eb);
+    fill: var(--surface);
+    stroke: var(--border);
     stroke-width: 2;
 }
 .controller-visual__stick {
-    fill: var(--text-secondary, #6b7280);
+    fill: var(--color-text-muted);
 }
 .controller-visual__button {
-    fill: var(--border, #e5e7eb);
+    fill: var(--border);
 }
 .controller-visual__button--pressed {
-    fill: #22c55e;
+    fill: var(--color-success);
 }
 </style>
