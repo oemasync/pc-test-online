@@ -1,15 +1,28 @@
 <template>
   <div v-if="module">
-    <component :is="component" />
+    <div v-if="!supported">
+      <p>{{ t('buttons.unsupported') }}</p>
+      <button
+        type="button"
+        data-testid="skip-button"
+        @click="skipModule"
+      >
+        {{ t('buttons.skip') }}
+      </button>
+    </div>
+    <component
+      :is="component"
+      v-else
+    />
     <nav class="test-nav">
       <router-link
         v-if="prev"
         :to="`/test/${prev.id}`"
-      >Prev</router-link>
+      >{{ t('buttons.prev') }}</router-link>
       <router-link
         v-if="next"
         :to="`/test/${next.id}`"
-      >Next</router-link>
+      >{{ t('buttons.next') }}</router-link>
     </nav>
   </div>
   <div v-else>
@@ -19,11 +32,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, shallowRef, watch } from 'vue'
+import type { Component } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getTestModule, getTestModules } from '@/core/registry'
-import { getStatus, start } from '@/core/results'
+import { getStatus, skip, start } from '@/core/results'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -32,27 +46,26 @@ const modules = getTestModules()
 const idx = computed(() => modules.findIndex((m) => m.id === module.value?.id))
 const prev = computed(() => (idx.value > 0 ? modules[idx.value - 1] : null))
 const next = computed(() => (idx.value >= 0 && idx.value < modules.length - 1 ? modules[idx.value + 1] : null))
+const supported = computed(() => module.value?.isSupported?.() ?? true)
 
-const component = ref<unknown>(null)
+const component = shallowRef<Component | null>(null)
 watch(
   module,
   async (m) => {
     component.value = null
     if (m) {
       if (getStatus(m.id) === 'pending') start(m.id)
+      if (m.isSupported?.() === false) return
       const loaded = await m.component()
-      component.value = (loaded as { default?: unknown }).default ?? loaded
+      component.value = (loaded as { default?: Component }).default ?? (loaded as Component)
     }
   },
   { immediate: true },
 )
 
-onMounted(() => {
-  const id = String(route.params.id)
-  if (getTestModule(id) && getStatus(id) === 'pending') {
-    start(id)
-  }
-})
+function skipModule(): void {
+  if (module.value) skip(module.value.id)
+}
 </script>
 
 <style scoped>

@@ -19,8 +19,12 @@
     "reset": "Reset",
     "export": "Export",
     "print": "Print",
+    "prev": "Previous",
+    "next": "Next",
     "unsupported": "Not supported in this browser",
     "confirm": "Confirm",
+    "failNote": "Failure note",
+    "cancel": "Cancel",
     "retry": "Retest"
   },
   "status": {

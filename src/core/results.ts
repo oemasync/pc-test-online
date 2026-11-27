@@ -2,12 +2,13 @@ import { ref } from 'vue'
 import type { TestResult, TestStatus } from './types'
 
 const STORAGE_KEY = 'pc-test-online:results'
+const validStatuses: readonly TestStatus[] = ['pending', 'running', 'passed', 'failed', 'skipped']
 
 function isResult(value: unknown): value is TestResult {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const v = value as Record<string, unknown>
   if (typeof v.id !== 'string') return false
-  if (typeof v.status !== 'string') return false
+  if (typeof v.status !== 'string' || !validStatuses.includes(v.status as TestStatus)) return false
   if (typeof v.durationMs !== 'number') return false
   if (!v.details || typeof v.details !== 'object' || Array.isArray(v.details)) return false
   return true
@@ -48,9 +49,8 @@ function ensure(id: string): TestResult {
   if (existing) return existing
   const created: TestResult = { id, status: 'pending', durationMs: 0, details: {} }
   results.value = { ...results.value, [id]: created }
-  const entry = results.value[id]
-  if (!entry) throw new Error(`failed to create result entry for ${id}`)
-  return entry
+  // results.value is a ref proxy; the new entry is present by construction.
+  return results.value[id]!
 }
 
 function finish(

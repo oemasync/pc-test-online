@@ -1,5 +1,5 @@
 {
-  "name": "Keyboard Test",
+  "title": "Keyboard Test",
   "description": "Test your keyboard by pressing keys and verifying they register correctly.",
   "instructions": "Press every key. Keys stay marked once tested.",
   "testedLabel": "Keys tested",
