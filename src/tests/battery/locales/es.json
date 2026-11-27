@@ -1,0 +1,20 @@
+{
+  "title": "Prueba de batería",
+  "description": "Comprueba nivel de batería, estado de carga y tiempo restante usando la Battery Status API.",
+  "levelLabel": "Nivel de carga",
+  "statusLabel": "Estado",
+  "charging": "Cargando",
+  "notCharging": "No cargando",
+  "chargingTimeLabel": "Tiempo para llenar",
+  "dischargingTimeLabel": "Tiempo para vaciar",
+  "rateLabel": "Tasa de descarga/carga",
+  "etaLabel": "Tiempo estimado",
+  "measuring": "Midiendo…",
+  "unknown": "desconocido",
+  "loadError": "No se pudo leer la batería. Permiso denegado o fallo de la API.",
+  "hoursAbbr": "h",
+  "minutesAbbr": "m",
+  "secondsAbbr": "s",
+  "unsupportedTitle": "API de batería no soportada",
+  "unsupportedMessage": "Este navegador no expone la Battery Status API (solo Chromium)."
+}
