@@ -3,6 +3,7 @@
   "description": "Test left, right and both channels, your audible range, and polarity.",
   "lowerVolume": "Lower your volume before starting. Sweeps and tones can be loud.",
   "unsupportedSink": "Output device selection is not supported in this browser (e.g. Firefox/Safari). The default device will be used.",
+  "sinkError": "Could not switch the output device.",
   "outputDevice": "Output device",
   "channelsTitle": "Channel test",
   "playLeft": "Play left",

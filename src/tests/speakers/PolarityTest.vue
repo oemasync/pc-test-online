@@ -80,12 +80,12 @@ function stop(): void {
         try {
             o.stop();
         } catch (err) {
-            console.debug("audio: node already stopped or disconnected", err)
+            console.debug('audio: node already stopped or disconnected', err);
         }
         try {
             o.disconnect();
         } catch (err) {
-            console.debug("audio: node already stopped or disconnected", err)
+            console.debug('audio: node already stopped or disconnected', err);
         }
     }
     oscs.length = 0;

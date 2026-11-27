@@ -6,10 +6,10 @@ test('speakers module', async ({ page }) => {
         if (m.type() === 'error') errors.push(m.text());
     });
     await page.goto('/test/speakers');
-    await page.getByTestId('play-left').click()
-    await expect(page.getByTestId('channel-playing')).toHaveText('left')
-    await page.getByTestId('play-right').click()
-    await page.getByTestId('play-both').click()
+    await page.getByTestId('play-left').click();
+    await expect(page.getByTestId('channel-playing')).toHaveText('left');
+    await page.getByTestId('play-right').click();
+    await page.getByTestId('play-both').click();
     await page.getByTestId('play-sweep').click();
     await page.waitForTimeout(200);
     await page.getByTestId('mark-low').click();

@@ -36,7 +36,7 @@
 <script setup lang="ts">
 import { onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { getAudioContext, resumeAudioContext } from '@/lib/audio'
+import { getAudioContext, resumeAudioContext } from '@/lib/audio';
 import {
     audibleRangeReducer,
     createAudibleRange,
@@ -96,13 +96,13 @@ function stop(): void {
     try {
         osc?.stop();
     } catch (err) {
-            console.debug("audio: node already stopped or disconnected", err)
-        }
+        console.debug('audio: node already stopped or disconnected', err);
+    }
     try {
         osc?.disconnect();
     } catch (err) {
-            console.debug("audio: node already stopped or disconnected", err)
-        }
+        console.debug('audio: node already stopped or disconnected', err);
+    }
     osc = null;
 }
 

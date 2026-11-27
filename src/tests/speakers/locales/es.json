@@ -3,6 +3,7 @@
   "description": "Prueba los canales izquierdo, derecho y ambos, tu rango audible y la polaridad.",
   "lowerVolume": "Baja el volumen antes de empezar. Los barridos y tonos pueden ser fuertes.",
   "unsupportedSink": "La seleccion de dispositivo de salida no es compatible con este navegador (p. ej. Firefox/Safari). Se usara el dispositivo predeterminado.",
+  "sinkError": "No se pudo cambiar el dispositivo de salida.",
   "outputDevice": "Dispositivo de salida",
   "channelsTitle": "Prueba de canales",
   "playLeft": "Reproducir izquierdo",

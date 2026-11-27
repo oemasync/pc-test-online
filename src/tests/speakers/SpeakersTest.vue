@@ -34,6 +34,14 @@
       </label>
     </div>
 
+    <p
+      v-if="sinkError"
+      class="notice"
+      data-testid="sink-error"
+    >
+      {{ sinkError }}
+    </p>
+
     <ChannelTest @played="onChannelPlayed" />
     <ToneGenerator @started="onToneStarted" />
     <SweepTest @range="onRange" />
@@ -56,9 +64,10 @@ import SweepTest from './SweepTest.vue';
 import ChordTest from './ChordTest.vue';
 import PolarityTest from './PolarityTest.vue';
 
-const { t } = useI18n()
+const { t } = useI18n();
 const { devices } = useDevices('audiooutput');
 const selectedDeviceId = ref('');
+const sinkError = ref('');
 
 const channelsPlayed = ref(new Set<string>());
 const tonePlayed = ref(false);
@@ -72,8 +81,8 @@ const polarityPlayed = ref(false);
 const sinkSupport = computed(() =>
     detectSinkIdSupport(
         typeof AudioContext !== 'undefined' && 'setSinkId' in AudioContext.prototype,
-        typeof HTMLMediaElement !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype,
-    ),
+        typeof HTMLMediaElement !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype
+    )
 );
 
 const sinkSupported = computed(() => sinkSupport.value !== 'none');
@@ -124,14 +133,16 @@ async function applyOutputDevice(deviceId: string): Promise<void> {
     if (!ctx) return;
     const sinkCtx = ctx as AudioContext & { setSinkId?: (id: string) => Promise<void> };
     if (typeof sinkCtx.setSinkId !== 'function') return;
+    sinkError.value = '';
     try {
         await sinkCtx.setSinkId(deviceId);
     } catch (err) {
         console.debug('audio: setSinkId failed', err);
+        sinkError.value = t('tests.speakers.sinkError');
     }
 }
 
-watch(selectedDeviceId, (id) => {
+watch(selectedDeviceId, id => {
     void applyOutputDevice(id);
 });
 </script>

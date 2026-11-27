@@ -76,18 +76,18 @@ function stop(): void {
     try {
         osc?.stop();
     } catch (err) {
-            console.debug("audio: node already stopped or disconnected", err)
-        }
+        console.debug('audio: node already stopped or disconnected', err);
+    }
     try {
         osc?.disconnect();
     } catch (err) {
-            console.debug("audio: node already stopped or disconnected", err)
-        }
+        console.debug('audio: node already stopped or disconnected', err);
+    }
     try {
         gain?.disconnect();
     } catch (err) {
-            console.debug("audio: node already stopped or disconnected", err)
-        }
+        console.debug('audio: node already stopped or disconnected', err);
+    }
     osc = null;
     gain = null;
     playing.value = false;

@@ -77,17 +77,17 @@ async function play(channel: 'left' | 'right' | 'both'): Promise<void> {
         try {
             osc.disconnect();
         } catch (err) {
-            console.debug("audio: node already stopped or disconnected", err)
+            console.debug('audio: node already stopped or disconnected', err);
         }
         try {
             panner.disconnect();
         } catch (err) {
-            console.debug("audio: node already stopped or disconnected", err)
+            console.debug('audio: node already stopped or disconnected', err);
         }
         try {
             gain.disconnect();
         } catch (err) {
-            console.debug("audio: node already stopped or disconnected", err)
+            console.debug('audio: node already stopped or disconnected', err);
         }
     };
 }
