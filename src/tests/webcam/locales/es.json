@@ -1,0 +1,18 @@
+{
+  "title": "Prueba de webcam",
+  "description": "Prueba tu webcam con vista previa en vivo y velocidad de fotogramas medida.",
+  "instructions": "Permite el acceso a la camara, revisa la vista previa y las lecturas, luego captura una instantanea.",
+  "deviceLabel": "Camara",
+  "mirrorLabel": "Espejar vista previa",
+  "snapshotButton": "Instantanea PNG",
+  "resolutionLabel": "Resolucion",
+  "reportedFpsLabel": "FPS reportados",
+  "measuredFpsLabel": "FPS medidos",
+  "aspectRatioLabel": "Relacion de aspecto",
+  "facingModeLabel": "Modo de camara",
+  "capabilitiesLabel": "Rangos compatibles",
+  "coveredLensWarning": "El fotograma parece una lente cubierta.",
+  "stalledWarning": "No se ha presentado un nuevo fotograma.",
+  "staticWarning": "La imagen parece congelada.",
+  "noCapabilities": "Capacidades no disponibles en este navegador."
+}
