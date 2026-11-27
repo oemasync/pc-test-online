@@ -74,6 +74,7 @@
       <StatTile
         :label="t('tests.gamepad.buttonsTested')"
         :value="`${buttonCoverageSummary.testedCount} / ${buttonCoverageSummary.total}`"
+        aria-live="polite"
       />
 
       <TriggerPanel

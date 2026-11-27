@@ -1,8 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mountWithPlugins } from '@/test-utils/mount';
 import GamepadTest from '../GamepadTest.vue';
 
 describe('GamepadTest', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     it('shows the connect prompt when no pad is available', () => {
         Object.defineProperty(navigator, 'getGamepads', {
             value: () => [null],
@@ -18,6 +22,7 @@ describe('GamepadTest', () => {
     it('cancels animation-frame polling on unmount', () => {
         const cancelSpy = vi.spyOn(window, 'cancelAnimationFrame');
         vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 42);
+        const removeSpy = vi.spyOn(window, 'removeEventListener');
 
         Object.defineProperty(navigator, 'getGamepads', {
             value: () => [null],
@@ -29,6 +34,7 @@ describe('GamepadTest', () => {
         wrapper.unmount();
 
         expect(cancelSpy).toHaveBeenCalled();
-        cancelSpy.mockRestore();
+        expect(removeSpy).toHaveBeenCalledWith('gamepadconnected', expect.any(Function));
+        expect(removeSpy).toHaveBeenCalledWith('gamepaddisconnected', expect.any(Function));
     });
 });

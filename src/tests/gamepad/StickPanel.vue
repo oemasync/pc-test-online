@@ -5,26 +5,32 @@
       <StatTile
         :label="t('tests.gamepad.meanOffset')"
         :value="drift.meanOffset.toFixed(3)"
+        aria-live="polite"
       />
       <StatTile
         :label="t('tests.gamepad.maxOffset')"
         :value="drift.maxOffset.toFixed(3)"
+        aria-live="polite"
       />
       <StatTile
         :label="t('tests.gamepad.noise')"
         :value="drift.noise.toFixed(3)"
+        aria-live="polite"
       />
       <StatTile
         :label="t('tests.gamepad.coverage')"
         :value="Math.round(circularity.coverage * 100) + '%'"
+        aria-live="polite"
       />
       <StatTile
         :label="t('tests.gamepad.error')"
         :value="circularity.error.toFixed(3)"
+        aria-live="polite"
       />
       <StatTile
         :label="t('tests.gamepad.resting')"
         :value="restCount"
+        aria-live="polite"
       />
     </div>
     <svg
