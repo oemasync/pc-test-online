@@ -1,7 +1,7 @@
 <template>
   <TestLayout
     :test-id="id"
-    :title="t('tests.keyboard.name')"
+    :title="t('tests.keyboard.title')"
   >
     <template #instructions>
       {{ t('tests.keyboard.instructions') }}
