@@ -1,0 +1,14 @@
+{
+  "title": "Prueba táctil",
+  "description": "Prueba la entrada multitáctil y de lápiz, zonas muertas y lecturas de presión/inclinación.",
+  "instructions": "Desliza sobre toda la superficie. Usa tantos dedos como soporte tu dispositivo.",
+  "maxSimultaneousLabel": "Máximo simultáneo",
+  "coverageLabel": "Cobertura",
+  "deadCellsLabel": "Celdas muertas",
+  "unsupported": "Este dispositivo no reporta entrada táctil (maxTouchPoints es 0).",
+  "fullscreen": "Pantalla completa",
+  "exitFullscreen": "Salir de pantalla completa",
+  "penDetected": "Lápiz detectado",
+  "pressureReported": "Presión reportada",
+  "tiltReported": "Inclinación reportada"
+}

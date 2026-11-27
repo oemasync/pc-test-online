@@ -1,0 +1,14 @@
+{
+  "title": "Touch Test",
+  "description": "Test multi-touch and pen input, dead zones, and pressure/tilt readouts.",
+  "instructions": "Swipe over the whole surface. Use as many fingers as your device supports.",
+  "maxSimultaneousLabel": "Max simultaneous",
+  "coverageLabel": "Coverage",
+  "deadCellsLabel": "Dead cells",
+  "unsupported": "This device does not report touch input (maxTouchPoints is 0).",
+  "fullscreen": "Fullscreen",
+  "exitFullscreen": "Exit fullscreen",
+  "penDetected": "Pen detected",
+  "pressureReported": "Pressure reported",
+  "tiltReported": "Tilt reported"
+}
