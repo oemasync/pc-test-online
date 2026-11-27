@@ -1,188 +1,96 @@
-# MMIT Computer Testing Suite
+# pc-test-online
 
-A cross-platform web application for testing computer hardware components in repair shops. Built
-with Vue 3 and Node.js for maximum compatibility across modern web browsers.
+A browser-based hardware testing suite. Test your PC's webcam, microphone, speakers, keyboard,
+mouse, touch, battery, display, gamepad, CPU/GPU and motion sensors directly in the browser —
+no installs, no accounts, nothing leaves your machine.
+
+[![CI](https://github.com/oemasync/pc-test-online/actions/workflows/ci.yml/badge.svg)](https://github.com/oemasync/pc-test-online/actions/workflows/ci.yml)
 
 ## Features
 
-- **Webcam Test**: Test camera functionality with live preview and snapshot capability
-- **Microphone Test**: Test audio input with volume visualization and recording playback
-- **Speaker Test**: Test audio output with stereo channel testing, frequency sweeps, and music
-  playback
-- **Cross-Platform**: Works on Windows, macOS, and Linux through modern web browsers
-- **Modern UI**: Beautiful, responsive interface with step-by-step testing process
+| Test | What it checks |
+| --- | --- |
+| Webcam | Live preview, device selection, snapshot capture |
+| Microphone | Input level visualization, recording and playback |
+| Speakers | Left/right channels, frequency sweeps, tone playback, output device selection |
+| Keyboard | Key presses, layout, repeat, modifier keys |
+| Mouse | Buttons, scroll, movement, pointer precision |
+| Touch | Multi-touch points, pressure and gesture recognition |
+| Battery | Charge level, charging state, time estimates |
+| System info | Browser, OS, CPU cores, memory, network details |
+| Display | Dead pixels, refresh rate, color and uniformity checks |
+| Gamepad | Buttons, axes, vibration and connection status |
+| CPU/GPU benchmark | Synthetic compute and graphics performance |
+| Motion sensors | Accelerometer, gyroscope, magnetometer readings |
 
-## Tech Stack
+## Privacy
 
-- **Frontend**: Vue 3 + Vite
-- **Backend**: Node.js + Express
-- **Styling**: Pure CSS with modern design patterns
+Everything runs locally in your browser. No data is uploaded, no telemetry is collected, and there
+is no backend. Hardware access (camera, microphone, sensors) is requested by the browser and
+stays on your device.
 
-## Prerequisites
+## Browser support
 
-- Node.js 16+ (recommended: Node.js 18+)
-- npm or yarn package manager
+- Chromium-based browsers (Chrome, Edge) are fully supported.
+- Firefox and Safari support most tests but lack some APIs:
+  - **Battery** (Battery Status API) is Chromium-only.
+  - **Speaker output device selection** (`setSinkId`) is Chromium-only.
+  - **Generic Sensors** (accelerometer, gyroscope, magnetometer, ambient-light-sensor) are Chromium-only.
+  - **Gamepad** vibration and some axes vary by browser and OS.
+- Camera and microphone require a secure context (HTTPS or `localhost`).
 
-## Installation
-
-### 1. Clone the repository
-
-```bash
-git clone <repository-url>
-cd mmit-testing-app
-```
-
-### 2. Install all dependencies
-
-```bash
-npm run install:all
-```
-
-This will install dependencies for the root project, frontend, and backend.
-
-## Development
-
-### Run the web application (recommended for development)
+## Quick start
 
 ```bash
+npm ci
 npm run dev
 ```
 
-This starts both the backend server (port 3000) and frontend development server (port 5173).
+Open the printed URL in your browser.
 
-### Run individual components
+## Scripts
+
+| Script | Description |
+| --- | --- |
+| `dev` | Start the Vite dev server |
+| `build` | Production build to `dist/` |
+| `preview` | Preview the production build |
+| `lint` | Run ESLint |
+| `format` | Run Prettier |
+| `typecheck` | Run TypeScript checks |
+| `test` | Run unit tests (Vitest) |
+| `test:watch` | Run unit tests in watch mode |
+| `coverage` | Run unit tests with coverage |
+| `e2e` | Run Playwright E2E tests (Chromium, fake media devices) |
+| `check` | Run all checks |
+
+## Testing
+
+Unit tests use Vitest. End-to-end tests use Playwright with Chromium and fake media devices so
+camera/microphone tests run headlessly in CI.
 
 ```bash
-# Frontend only
-npm run dev:frontend
-
-# Backend only
-npm run dev:backend
+npm test
+npm run e2e
 ```
 
-## Building for Production
-
-### Build web application
+## Docker
 
 ```bash
-npm run build
+docker build -t pc-test-online .
+docker run --rm -p 8080:8080 pc-test-online
 ```
 
-This creates optimized production files in the `frontend/dist` folder.
+The container serves the app on port 8080 and exposes `/healthz`.
 
-## Project Structure
+## Deployment
 
-```
-mmit-testing-app/
-├── frontend/              # Vue 3 frontend application
-│   ├── src/
-│   │   ├── components/    # Test components
-│   │   │   ├── WebcamTest.vue
-│   │   │   ├── MicrophoneTest.vue
-│   │   │   └── SpeakerTest.vue
-│   │   ├── App.vue        # Main application component
-│   │   └── main.js        # Vue app entry point
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.js
-├── backend/               # Node.js backend server
-│   ├── src/
-│   │   └── server.js      # Express server
-│   └── package.json
-├── package.json           # Root package.json
-└── README.md
-```
-
-## Usage
-
-### Web Browser
-
-1. Start the development server: `npm run dev`
-2. Open your browser to `http://localhost:5173`
-3. Follow the step-by-step testing process
-
-## Testing Process
-
-The application guides users through a 3-step testing process:
-
-### Step 1: Webcam Test
-
-- Requests camera permissions
-- Shows live camera preview
-- Allows taking test photos
-- Validates camera functionality
-
-### Step 2: Microphone Test
-
-- Requests microphone permissions
-- Shows real-time volume visualization
-- Records and plays back test audio
-- Validates microphone functionality
-
-### Step 3: Speaker Test
-
-- Tests left and right audio channels individually
-- Provides frequency sweep testing
-- Includes music playback test
-- Volume control testing
-- User validation checklist
-
-## Browser Compatibility
-
-- Chrome 88+ (recommended)
-- Firefox 85+
-- Safari 14+
-- Edge 88+
-
-**Note**: Camera and microphone testing requires HTTPS in production or localhost for development.
-
-## API Endpoints
-
-The backend provides several API endpoints:
-
-- `GET /api/health` - Health check
-- `POST /api/test-results` - Save test results (future use)
-- `GET /api/system-info` - Get system information
-
-## Configuration
-
-### Environment Variables
-
-- `NODE_ENV` - Set to 'production' for production builds
-- `PORT` - Backend server port (default: 3000)
-
-## Troubleshooting
-
-### Camera/Microphone Not Working
-
-- Ensure browser permissions are granted
-- Check if another application is using the devices
-- Try refreshing the page
-
-### Audio Not Playing
-
-- Check system volume settings
-- Ensure speakers/headphones are connected
-- Try different browsers if using web version
-
-### Build Issues
-
-- Clear node_modules and reinstall: `rm -rf node_modules && npm run install:all`
-- Ensure Node.js version is 16+
-- Check for platform-specific build requirements
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for Coolify and plain Docker deployment.
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly on multiple platforms
-5. Submit a pull request
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For support and questions, please open an issue in the repository or contact the development team.
+[MIT](LICENSE) — Copyright (c) 2025-2026 oemasync.

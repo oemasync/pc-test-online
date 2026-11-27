@@ -1,23 +1,34 @@
 # Contributing
 
-## Getting Started
+## Setup
 
 ```bash
-git clone https://github.com/omiinaya/pc-test-online.git
+git clone https://github.com/oemasync/pc-test-online.git
 cd pc-test-online
-npm install
+npm ci
+npm run dev
 ```
 
-## Development
+Node 24 is recommended (see `.nvmrc`); `engines.node >= 22`.
 
-- **Dev:** `npm run dev`
-- **Build:** `npm run build`
-- **Lint:** `npm run lint`
+## Conventions
 
-## Commit Messages
+- TypeScript throughout; run `npm run typecheck` before committing.
+- Lint with `npm run lint`, format with `npm run format`.
+- Tests live next to code; unit tests use Vitest, E2E uses Playwright.
+- Keep everything client-side: no backend, no telemetry, no network calls.
+- One change at a time; verify with `npm run check`.
 
-```
-type: concise subject
-```
+## Adding a new test module
 
-Types: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`, `test:`
+1. Read the module contract in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+2. Create `src/tests/<id>/` following the contract (component, composable, registration).
+3. Add the test to the discovery list if required by the architecture.
+4. Add unit tests in `src/tests/<id>/`.
+5. Add an E2E spec under `e2e/` using the fake media device fixtures.
+6. Run `npm run check` and `npm run e2e`.
+
+## Pull requests
+
+- Branch from `main`, keep PRs focused.
+- Ensure CI is green.

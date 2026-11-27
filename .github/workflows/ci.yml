@@ -1,84 +1,86 @@
 name: CI
 
 on:
-    push:
-        branches: [main, develop]
-    pull_request:
-        branches: [main, develop]
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-    test:
-        runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                node-version: [18.x, 20.x]
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
-        steps:
-            - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
 
-            - name: Setup Node.js ${{ matrix.node-version }}
-              uses: actions/setup-node@v4
-              with:
-                  node-version: ${{ matrix.node-version }}
+      - name: Install dependencies
+        run: npm ci
 
-            - name: Install dependencies (frontend)
-              run: npm ci
-              working-directory: frontend
+      - name: Lint
+        run: npm run lint
 
-            - name: Type checking
-              run: npm run type-check
-              working-directory: frontend
+      - name: Typecheck
+        run: npm run typecheck
 
-            - name: Lint
-              run: npm run lint
-              working-directory: frontend
+      - name: Coverage
+        run: npm run coverage
 
-            - name: Security audit (npm audit)
-              run: npm audit --audit-level=high
-              working-directory: frontend
+      - name: Build
+        run: npm run build
 
-            - name: Unit tests with coverage
-              run: npm test -- --coverage --run
-              working-directory: frontend
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: coverage/
+          if-no-files-found: warn
 
-            - name: Upload coverage to Codecov
-              uses: codecov/codecov-action@v3
-              with:
-                  token: ${{ secrets.CODECOV_TOKEN }}
-                  files: frontend/coverage/coverage-final.json
-                  fail_ci_if_error: true
+  e2e:
+    name: End-to-end
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
-    e2e:
-        runs-on: ubuntu-latest
-        needs: test
-        steps:
-            - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
 
-            - name: Setup Node.js
-              uses: actions/setup-node@v4
-              with:
-                  node-version: '20'
+      - name: Install dependencies
+        run: npm ci
 
-            - name: Install dependencies (frontend)
-              run: npm ci
-              working-directory: frontend
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
-            - name: Build frontend
-              run: npm run build
-              working-directory: frontend
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
 
-            - name: Start preview server (Vite preview)
-              run: npm run preview -- --port 4173 &
-              working-directory: frontend
+      - name: Run E2E tests
+        run: npm run e2e
 
-            - name: Wait for server
-              run: npx wait-on http://localhost:4173
-              working-directory: frontend
-
-            - name: Run Cypress tests
-              uses: cypress-io/github-action@v6
-              with:
-                  working-directory: frontend
-                  browser: chrome
-                  headless: true
-                  config: baseUrl=http://localhost:4173
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
