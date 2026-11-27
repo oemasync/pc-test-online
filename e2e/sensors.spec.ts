@@ -20,6 +20,7 @@ test('sensors devicemotion activates and passes', async ({ page }) => {
   })
 
   await page.goto('/test/sensors')
+  await expect(page.getByTestId('bubble-level')).toBeVisible({ timeout: 5000 })
 
   await page.evaluate(() => {
     for (let i = 0; i < 12; i += 1) {
