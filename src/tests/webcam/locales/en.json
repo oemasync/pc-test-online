@@ -1,0 +1,18 @@
+{
+  "title": "Webcam Test",
+  "description": "Test your webcam with a live preview and measured frame rate.",
+  "instructions": "Allow camera access, check the preview and readouts, then capture a snapshot.",
+  "deviceLabel": "Camera",
+  "mirrorLabel": "Mirror preview",
+  "snapshotButton": "Snapshot PNG",
+  "resolutionLabel": "Resolution",
+  "reportedFpsLabel": "Reported FPS",
+  "measuredFpsLabel": "Measured FPS",
+  "aspectRatioLabel": "Aspect ratio",
+  "facingModeLabel": "Facing mode",
+  "capabilitiesLabel": "Supported ranges",
+  "coveredLensWarning": "The frame looks like a covered lens.",
+  "stalledWarning": "No new frame has been presented.",
+  "staticWarning": "The image appears frozen.",
+  "noCapabilities": "Capabilities not available in this browser."
+}
