@@ -5,14 +5,22 @@ export const SWEEP_MIN_HZ = 20;
 export const SWEEP_MAX_HZ = 20000;
 export const A4_HZ = 440;
 export const A4_MIDI = 69;
+export const MAX_OUTPUT_GAIN = 0.25; // -12 dBFS ceiling for every gain path
+export const DEFAULT_TONE_VOLUME = 0.1;
+export const CLICK_FREE_ATTACK_S = 0.005;
+export const SWEEP_REACTION_TIME_S = 0.25;
 
 export type Channel = 'left' | 'right' | 'both';
-
+export type SweepDirection = 'rising' | 'falling';
+export type Polarity = 'inPhase' | 'inverted';
 export type SinkIdSupport = 'audioContext' | 'mediaElement' | 'none';
+export type RampKind = 'linear' | 'setTargetAtTime';
 
 export interface GainPoint {
     time: number;
     value: number;
+    ramp: RampKind;
+    timeConstant?: number;
 }
 
 export interface AudibleRangeState {
@@ -29,12 +37,6 @@ export type AudibleRangeAction =
 
 // ---------- Sweep (logarithmic 20 Hz .. 20 kHz) ----------
 
-export function clampFrequency(hz: number, min: number, max: number): number {
-    if (hz < min) return min;
-    if (hz > max) return max;
-    return hz;
-}
-
 export function sweepFrequencyAtTime(
     t: number,
     duration: number,
@@ -47,6 +49,18 @@ export function sweepFrequencyAtTime(
     return min * ratio;
 }
 
+export function fallingSweepFrequencyAtTime(
+    t: number,
+    duration: number,
+    min: number = SWEEP_MIN_HZ,
+    max: number = SWEEP_MAX_HZ,
+): number {
+    if (duration <= 0) return max;
+    const clampedT = t < 0 ? 0 : t > duration ? duration : t;
+    const ratio = Math.pow(min / max, clampedT / duration);
+    return max * ratio;
+}
+
 export function sweepTimeAtFrequency(
     hz: number,
     duration: number,
@@ -57,52 +71,35 @@ export function sweepTimeAtFrequency(
     if (hz <= min) return 0;
     if (hz >= max) return duration;
     const span = Math.log(max / min);
-    if (span === 0) return 0;
     const pos = Math.log(hz / min) / span;
-    const t = pos * duration;
+    return pos * duration;
+}
+
+export function compensatedSweepTime(pressTime: number, reactionTime: number, duration: number): number {
+    const t = pressTime - reactionTime;
     if (t < 0) return 0;
     if (t > duration) return duration;
     return t;
+}
+
+export function markedSweepFrequency(
+    pressTime: number,
+    duration: number,
+    reactionTime: number = SWEEP_REACTION_TIME_S,
+    min: number = SWEEP_MIN_HZ,
+    max: number = SWEEP_MAX_HZ,
+    direction: SweepDirection = 'rising',
+): number {
+    const t = compensatedSweepTime(pressTime, reactionTime, duration);
+    return direction === 'falling'
+        ? fallingSweepFrequencyAtTime(t, duration, min, max)
+        : sweepFrequencyAtTime(t, duration, min, max);
 }
 
 // ---------- Note to frequency ----------
 
 export function midiNoteToFrequency(midi: number): number {
     return A4_HZ * Math.pow(2, (midi - A4_MIDI) / 12);
-}
-
-export function frequencyToMidiNote(hz: number): number {
-    if (hz <= 0) return A4_MIDI;
-    return Math.round(A4_MIDI + 12 * Math.log2(hz / A4_HZ));
-}
-
-const NOTE_SEMITONES: Readonly<Record<string, number>> = {
-    C: 0,
-    D: 2,
-    E: 4,
-    F: 5,
-    G: 7,
-    A: 9,
-    B: 11,
-};
-
-export function noteNameToFrequency(name: string): number | null {
-    const m = /^([A-Ga-g])([#b]?)(-?\d+)$/.exec(name.trim());
-    if (!m) return null;
-    const letter = m[1];
-    if (letter === undefined) return null;
-    const accidental = m[2] ?? '';
-    const octaveStr = m[3];
-    if (octaveStr === undefined) return null;
-    const octave = Number.parseInt(octaveStr, 10);
-    if (!Number.isFinite(octave)) return null;
-    const base = NOTE_SEMITONES[letter.toUpperCase()];
-    if (base === undefined) return null;
-    let semitone = base;
-    if (accidental === '#') semitone += 1;
-    else if (accidental === 'b') semitone -= 1;
-    const midi = (octave + 1) * 12 + semitone;
-    return midiNoteToFrequency(midi);
 }
 
 // ---------- Channel / panner ----------
@@ -122,25 +119,17 @@ export function gainRampEnvelope(
     hold: number,
     release: number,
 ): GainPoint[] {
-    const p = peak < 0 ? 0 : peak;
-    const a = attack < 0 ? 0 : attack;
-    const h = hold < 0 ? 0 : hold;
-    const r = release < 0 ? 0 : release;
+    const clampedPeak = peak > MAX_OUTPUT_GAIN ? MAX_OUTPUT_GAIN : peak;
     const t0 = startTime;
-    const t1 = t0 + a;
-    const t2 = t1 + h;
-    const t3 = t2 + r;
+    const t1 = t0 + attack;
+    const t2 = t1 + hold;
+    const t3 = t2 + release;
     return [
-        { time: t0, value: 0 },
-        { time: t1, value: p },
-        { time: t2, value: p },
-        { time: t3, value: 0 },
+        { time: t0, value: 0, ramp: 'setTargetAtTime', timeConstant: CLICK_FREE_ATTACK_S },
+        { time: t1, value: clampedPeak, ramp: 'linear' },
+        { time: t2, value: clampedPeak, ramp: 'linear' },
+        { time: t3, value: 0, ramp: 'setTargetAtTime', timeConstant: CLICK_FREE_ATTACK_S },
     ];
-}
-
-export function clickFreeAttackDuration(sampleRate: number): number {
-    // ~5 ms attack avoids clicks on most hardware
-    return sampleRate > 0 ? 0.005 : 0.005;
 }
 
 // ---------- Chord ----------
@@ -148,7 +137,6 @@ export function clickFreeAttackDuration(sampleRate: number): number {
 export const MAJOR_CHORD_INTERVALS: readonly number[] = [0, 4, 7];
 
 export function chordFrequencies(rootHz: number, intervals: readonly number[]): number[] {
-    if (rootHz <= 0) return [];
     const out: number[] = [];
     for (const semi of intervals) {
         out.push(rootHz * Math.pow(2, semi / 12));
@@ -162,14 +150,8 @@ export function pleasantChordFrequencies(rootHz: number = midiNoteToFrequency(60
 
 // ---------- Polarity / phase ----------
 
-export type Polarity = 'normal' | 'inverted';
-
-export function polarityMultiplier(channel: Channel, polarity: Polarity): number {
-    if (polarity === 'normal') return 1;
-    // Inverted stereo: flip the right channel only.
-    if (channel === 'right') return -1;
-    if (channel === 'both') return 1;
-    return 1;
+export function rightChannelPolarityMultiplier(polarity: Polarity): number {
+    return polarity === 'inverted' ? -1 : 1;
 }
 
 // ---------- Audible range reducer ----------
@@ -184,12 +166,10 @@ export function audibleRangeReducer(
 ): AudibleRangeState {
     switch (action.type) {
         case 'markLow': {
-            const hz = clampFrequency(action.hz, SWEEP_MIN_HZ, SWEEP_MAX_HZ);
-            return { ...state, lowHz: hz };
+            return { ...state, lowHz: action.hz };
         }
         case 'markHigh': {
-            const hz = clampFrequency(action.hz, SWEEP_MIN_HZ, SWEEP_MAX_HZ);
-            return { ...state, highHz: hz };
+            return { ...state, highHz: action.hz };
         }
         case 'reset':
             return createAudibleRange();
@@ -203,7 +183,6 @@ export function audibleRangeReducer(
 }
 
 export function audibleRangeSpanOctaves(lowHz: number, highHz: number): number {
-    if (lowHz <= 0 || highHz <= 0) return 0;
     if (highHz <= lowHz) return 0;
     return Math.log2(highHz / lowHz);
 }
@@ -214,19 +193,8 @@ export function isAudibleRangeComplete(state: AudibleRangeState): boolean {
 
 // ---------- SinkId feature detection ----------
 
-export function audioContextSupportsSinkId(ctx: { setSinkId?: unknown } | null | undefined): boolean {
-    return !!ctx && typeof ctx.setSinkId === 'function';
-}
-
-export function mediaElementSupportsSinkId(el: { setSinkId?: unknown } | null | undefined): boolean {
-    return !!el && typeof el.setSinkId === 'function';
-}
-
-export function detectSinkIdSupport(
-    ctx: { setSinkId?: unknown } | null | undefined,
-    el: { setSinkId?: unknown } | null | undefined,
-): SinkIdSupport {
-    if (audioContextSupportsSinkId(ctx)) return 'audioContext';
-    if (mediaElementSupportsSinkId(el)) return 'mediaElement';
+export function detectSinkIdSupport(audioContextHasSetSinkId: boolean, mediaElementHasSetSinkId: boolean): SinkIdSupport {
+    if (audioContextHasSetSinkId) return 'audioContext';
+    if (mediaElementHasSetSinkId) return 'mediaElement';
     return 'none';
 }
