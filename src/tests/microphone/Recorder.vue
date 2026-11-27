@@ -37,10 +37,10 @@
 </template>
 
 <script setup lang="ts">
-import { defineOptions } from 'vue';
-defineOptions({ name: 'AudioRecorder' });
 import { onBeforeUnmount, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+defineOptions({ name: 'AudioRecorder' });
 
 const props = defineProps<{
     stream: MediaStream | null;

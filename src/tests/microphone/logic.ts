@@ -34,7 +34,8 @@ export function computeRms(samples: Float32Array): number {
 
     let sumSquares = 0;
     for (let i = 0; i < samples.length; i += 1) {
-        const sample = samples[i] as number;
+        const sample = samples[i];
+        if (sample === undefined) continue;
         sumSquares += sample * sample;
     }
     return Math.sqrt(sumSquares / samples.length);
@@ -100,7 +101,8 @@ export function countClipped(
 ): number {
     let count = 0;
     for (let i = 0; i < samples.length; i += 1) {
-        const sample = samples[i] as number;
+        const sample = samples[i];
+        if (sample === undefined) continue;
         if (Math.abs(sample) >= threshold) {
             count += 1;
         }
@@ -121,7 +123,9 @@ export function estimateNoiseFloor(rmsHistory: readonly number[]): number {
     const sorted = Array.from(rmsHistory).sort((a, b) => a - b);
     const drop = Math.max(1, Math.floor(sorted.length * NOISE_FLOOR_PERCENTILE));
     const index = Math.min(drop, sorted.length - 1);
-    return sorted[index] as number;
+    const value = sorted[index];
+    if (value === undefined) return 0;
+    return value;
 }
 
 /**
@@ -138,20 +142,25 @@ export function detectSilence(
     }
 
     const lastIndex = history.length - 1;
-    if ((history[lastIndex] as SilenceSample).rms > thresholdRms) {
+    const lastSample = history[lastIndex];
+    if (lastSample === undefined || lastSample.rms > thresholdRms) {
         return false;
     }
 
     let firstIndex = lastIndex;
     while (firstIndex > 0) {
-        const prev = history[firstIndex - 1] as SilenceSample;
-        if (prev.rms > thresholdRms) {
+        const prev = history[firstIndex - 1];
+        if (prev === undefined || prev.rms > thresholdRms) {
             break;
         }
         firstIndex -= 1;
     }
 
-    const span = (history[lastIndex] as SilenceSample).t - (history[firstIndex] as SilenceSample).t;
+    const firstSample = history[firstIndex];
+    if (firstSample === undefined) {
+        return false;
+    }
+    const span = lastSample.t - firstSample.t;
     return span >= durationMs;
 }
 
@@ -178,9 +187,12 @@ export function peakBinIndex(magnitudes: Float32Array): number {
         return -1;
     }
     let bestIndex = 0;
-    let bestValue = magnitudes[0] as number;
+    const firstMagnitude = magnitudes[0];
+    if (firstMagnitude === undefined) return -1;
+    let bestValue = firstMagnitude;
     for (let i = 1; i < magnitudes.length; i += 1) {
-        const value = magnitudes[i] as number;
+        const value = magnitudes[i];
+        if (value === undefined) continue;
         if (value > bestValue) {
             bestValue = value;
             bestIndex = i;

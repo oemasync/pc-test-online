@@ -16,9 +16,9 @@
 </template>
 
 <script setup lang="ts">
-import { defineOptions } from 'vue';
-defineOptions({ name: 'SpectrumView' });
 import { onBeforeUnmount, onMounted, ref } from 'vue';
+
+defineOptions({ name: 'SpectrumView' });
 
 const props = defineProps<{
     analyser: AnalyserNode | null;
@@ -44,7 +44,7 @@ function draw(): void {
         return;
     }
 
-    const rootStyle = getComputedStyle(wave);
+    const rootStyle = getComputedStyle(document.documentElement);
     const bg = rootStyle.getPropertyValue('--bg').trim() || rootStyle.getPropertyValue('--surface').trim();
     const accent = rootStyle.getPropertyValue('--color-accent').trim();
 
@@ -56,7 +56,8 @@ function draw(): void {
     wctx.beginPath();
     for (let i = 0; i < timeData.length; i += 1) {
         const x = (i / timeData.length) * wave.width;
-        const y = (1 - ((timeData[i] as number) + 1) / 2) * wave.height;
+        const sample = timeData[i];
+        const y = (1 - (((sample ?? 0) + 1) / 2)) * wave.height;
         if (i === 0) wctx.moveTo(x, y);
         else wctx.lineTo(x, y);
     }
@@ -69,7 +70,8 @@ function draw(): void {
     const barWidth = freq.width / freqData.length;
     fctx.fillStyle = accent;
     for (let i = 0; i < freqData.length; i += 1) {
-        const h = ((freqData[i] as number) / 255) * freq.height;
+        const bin = freqData[i];
+        const h = (((bin ?? 0) / 255) * freq.height);
         fctx.fillRect(i * barWidth, freq.height - h, barWidth - 1, h);
     }
 
