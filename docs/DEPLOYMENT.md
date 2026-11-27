@@ -27,3 +27,11 @@ docker run --rm -p 8080:8080 pc-test-online
 - The image is multi-stage: `node:24-alpine` builds, `nginxinc/nginx-unprivileged:alpine` serves.
 - The app is a single-page application; nginx falls back to `index.html`.
 - `/healthz` returns `200 ok`.
+
+### HSTS
+
+HSTS is intentionally **not** set by the app's nginx config because TLS terminates at
+Coolify's reverse proxy. To enable HSTS, configure it on the proxy (Coolify/Traefik) that
+terminates TLS, e.g. add the `Strict-Transport-Security` header there with a suitable
+`max-age` and `includeSubDomains`. Setting it in the container would be ineffective for the
+browser on the HTTPS origin.
