@@ -66,10 +66,6 @@ export function createCoverageState(rows: number, cols: number): CoverageState {
     };
 }
 
-function cloneGrid(grid: CoverageGrid): CoverageGrid {
-    return { rows: grid.rows, cols: grid.cols, hit: grid.hit.slice() };
-}
-
 export function pointToCell(
     x: number,
     y: number,
