@@ -1,0 +1,20 @@
+{
+  "title": "Benchmark",
+  "description": "Quick CPU, memory, and GPU benchmark.",
+  "instructions": "Run the benchmark and review the scores.",
+  "modeLabel": "Mode",
+  "quick": "Quick",
+  "full": "Full",
+  "run": "Run",
+  "abort": "Abort",
+  "singleScore": "Single-thread score",
+  "multiThroughput": "Multi-thread throughput",
+  "scalingEfficiency": "Scaling efficiency",
+  "memoryBandwidth": "Memory copy bandwidth",
+  "gpuFillRate": "GPU fill rate",
+  "checksums": "Checksums",
+  "verified": "Verified",
+  "mismatch": "Mismatch",
+  "checksumError": "Computation error, possible unstable CPU/overclock.",
+  "progress": "Progress"
+}

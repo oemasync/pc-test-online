@@ -1,0 +1,20 @@
+{
+  "title": "Benchmark",
+  "description": "Benchmark rapido de CPU, memoria y GPU.",
+  "instructions": "Ejecuta el benchmark y revisa las puntuaciones.",
+  "modeLabel": "Modo",
+  "quick": "Rapido",
+  "full": "Completo",
+  "run": "Ejecutar",
+  "abort": "Abortar",
+  "singleScore": "Puntuacion un hilo",
+  "multiThroughput": "Rendimiento multihilo",
+  "scalingEfficiency": "Eficiencia de escalado",
+  "memoryBandwidth": "Ancho de banda de copia",
+  "gpuFillRate": "Tasa de relleno GPU",
+  "checksums": "Checksums",
+  "verified": "Verificado",
+  "mismatch": "No coincide",
+  "checksumError": "Error de computo, posible CPU inestable/overclock.",
+  "progress": "Progreso"
+}

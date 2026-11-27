@@ -76,10 +76,14 @@ describe('scoring', () => {
 });
 
 describe('calibration', () => {
-  it('reaches target duration', () => {
-    expect(calibrateRepeats(5, 200)).toBe(40);
-    expect(calibrateRepeats(100, 200)).toBe(2);
-    expect(calibrateRepeats(300, 200)).toBe(1);
+  it('doubles on 0 ms', () => {
+    expect(calibrateRepeats(1, 0, 200)).toBe(2);
+  });
+  it('doubles on sub-resolution', () => {
+    expect(calibrateRepeats(4, 5, 200)).toBe(8);
+  });
+  it('scales once measurable', () => {
+    expect(calibrateRepeats(8, 16, 200)).toBe(Math.max(8, Math.ceil((200 / 16) * 8)));
   });
 });
 

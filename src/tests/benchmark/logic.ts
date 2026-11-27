@@ -82,10 +82,13 @@ export function scalingEfficiency(
   return multiThroughput / (singleThroughput * workers);
 }
 
-// Repeat a workload until its run lasts at least targetMs.
-// Given the measured duration of one repetition, return the repeat count.
-export function calibrateRepeats(singleRepMs: number, targetMs: number): number {
-  return Math.max(1, Math.ceil(targetMs / singleRepMs));
+// Calibration: double until measured elapsed >= 10 ms, then scale to target.
+// Given the current repeat count, the elapsed ms for that run, and the target ms.
+export function calibrateRepeats(repeats: number, elapsedMs: number, targetMs: number): number {
+  if (elapsedMs < 10) {
+    return repeats * 2;
+  }
+  return Math.max(repeats, Math.ceil((targetMs / elapsedMs) * repeats));
 }
 
 export function createScheduler(totalRuns: number): SchedulerState {
