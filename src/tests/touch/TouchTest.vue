@@ -155,9 +155,10 @@ function onPointerDown(e: PointerEvent): void {
     try {
         surface.value.setPointerCapture(e.pointerId);
     } catch (error) {
-        // setPointerCapture throws InvalidStateError for inactive/synthetic pointers;
-        // tracking and coverage continue without capture.
-        void error;
+        if (!(error instanceof DOMException)) {
+            throw error;
+        }
+        // setPointerCapture is unavailable for synthetic/inactive pointers; continue tracking without capture.
     }
     const rect = surface.value.getBoundingClientRect();
     const sample: PointerSample = {
@@ -258,7 +259,7 @@ onUnmounted(() => {
     position: fixed;
     inset: 0;
     z-index: 1000;
-    background: var(--bg, #0f172a);
+    background: var(--bg);
     padding: 1rem;
 }
 .touch-test__toolbar {
@@ -269,8 +270,8 @@ onUnmounted(() => {
     position: relative;
     width: 100%;
     aspect-ratio: 16 / 9;
-    background: var(--surface, #1e293b);
-    border: 1px solid var(--border, #334155);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 8px;
     overflow: hidden;
     display: grid;
@@ -279,10 +280,10 @@ onUnmounted(() => {
     touch-action: none;
 }
 .touch-test__cell {
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid color-mix(in srgb, var(--border) 20%, transparent);
 }
 .touch-test__cell--hit {
-    background: rgba(34, 197, 94, 0.6);
+    background: color-mix(in srgb, var(--color-success) 60%, transparent);
 }
 .touch-test__point {
     position: absolute;
