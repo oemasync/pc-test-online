@@ -23,24 +23,20 @@
         :delta-mode="deltaMode"
         :tested="Array.from(wheelDirections)"
       />
-      <div aria-live="polite">
-        <MousePolling
-          :median-hz="pollingEstimate.estimatedHz"
-          :nearest-rate="pollingEstimate.nearestStandardHz"
-          :samples="pollingEstimate.sampleCount"
-        />
-      </div>
+      <MousePolling
+        :median-hz="pollingEstimate.estimatedHz"
+        :nearest-rate="pollingEstimate.nearestStandardHz"
+        :samples="pollingEstimate.sampleCount"
+      />
       <MouseDrag
         :dragging="dragState.dragging"
         :completed="dragState.completed"
         :distance="dragState.distance"
       />
-      <div aria-live="polite">
-        <MouseChatter
-          :count="chatterState.chatterCount"
-          :detected="chatterState.chatterCount > 0"
-        />
-      </div>
+      <MouseChatter
+        :count="chatterState.chatterCount"
+        :detected="chatterState.chatterCount > 0"
+      />
       <div class="mouse-test__options">
         <button
           type="button"

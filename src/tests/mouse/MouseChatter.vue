@@ -1,11 +1,11 @@
 <template>
-  <div
-    class="mouse-chatter"
-    aria-live="polite"
-  >
+  <div class="mouse-chatter">
     <p>
       {{ t('tests.mouse.chatterCount') }}:
-      <span data-testid="chatter-count">{{ count }}</span>
+      <span
+        data-testid="chatter-count"
+        aria-live="polite"
+      >{{ count }}</span>
     </p>
     <p
       v-if="detected"

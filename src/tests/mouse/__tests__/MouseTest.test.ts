@@ -56,8 +56,6 @@ describe('MouseTest component', () => {
     expect(rafSpy).toHaveBeenCalled()
     wrapper.unmount()
 
-    const removedTypes = new Set(removeSpy.mock.calls.map((c) => c[0]))
-    console.log('removed types:', [...removedTypes])
     for (const type of listenerTypes) {
       expect(removeSpy).toHaveBeenCalledWith(type, expect.any(Function))
     }

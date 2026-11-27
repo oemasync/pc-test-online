@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="mouse-drag"
-    aria-live="polite"
-  >
+  <div class="mouse-drag">
     <div
       class="mouse-drag__box"
       :class="{ 'mouse-drag__box--dragging': dragging }"
@@ -12,7 +9,10 @@
     </div>
     <p>
       {{ t('tests.mouse.dragDistance') }}:
-      <span data-testid="drag-distance">{{ Math.round(distance) }}</span> px
+      <span
+        data-testid="drag-distance"
+        aria-live="polite"
+      >{{ Math.round(distance) }}</span> px
     </p>
     <p
       v-if="completed"

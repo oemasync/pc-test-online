@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="mouse-wheel"
-    aria-live="polite"
-  >
+  <div class="mouse-wheel">
     <div class="mouse-wheel__tiles">
       <div
         v-for="dir in directions"
@@ -16,7 +13,10 @@
     </div>
     <p>
       {{ t('tests.mouse.deltaMode') }}:
-      <span data-testid="wheel-delta-mode">{{ deltaModeLabel(deltaMode) }}</span>
+      <span
+        data-testid="wheel-delta-mode"
+        aria-live="polite"
+      >{{ deltaModeLabel(deltaMode) }}</span>
     </p>
   </div>
 </template>

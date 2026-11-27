@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="mouse-buttons"
-    aria-live="polite"
-  >
+  <div class="mouse-buttons">
     <div class="mouse-buttons__tiles">
       <div
         v-for="(name, i) in buttonNames"
@@ -19,7 +16,10 @@
     </div>
     <p class="mouse-buttons__dc">
       {{ t('tests.mouse.doubleClickInterval') }}:
-      <span data-testid="double-click-interval">{{ lastInterval ?? '-' }}</span> ms
+      <span
+        data-testid="double-click-interval"
+        aria-live="polite"
+      >{{ lastInterval ?? '-' }}</span> ms
     </p>
   </div>
 </template>

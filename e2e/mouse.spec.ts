@@ -37,12 +37,11 @@ test('mouse module', async ({ page }) => {
   // drag
   const box = page.getByTestId('drag-box')
   const bbox = await box.boundingBox()
-  if (bbox) {
-    await page.mouse.move(bbox.x + 5, bbox.y + 5)
-    await page.mouse.down()
-    await page.mouse.move(bbox.x + 40, bbox.y + 20)
-    await page.mouse.up()
-  }
+  expect(bbox).not.toBeNull()
+  await page.mouse.move(bbox!.x + 5, bbox!.y + 5)
+  await page.mouse.down()
+  await page.mouse.move(bbox!.x + 40, bbox!.y + 20)
+  await page.mouse.up()
   await expect(page.getByTestId('drag-done')).toBeVisible()
 
   // rapid move for polling

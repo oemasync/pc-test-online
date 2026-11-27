@@ -1,19 +1,25 @@
 <template>
-  <div
-    class="mouse-polling"
-    aria-live="polite"
-  >
+  <div class="mouse-polling">
     <p>
       {{ t('tests.mouse.pollingRate') }}:
-      <span data-testid="polling-rate">{{ medianHz ?? '-' }}</span> Hz
+      <span
+        data-testid="polling-rate"
+        aria-live="polite"
+      >{{ medianHz ?? '-' }}</span> Hz
     </p>
     <p>
       {{ t('tests.mouse.nearestRate') }}:
-      <span data-testid="nearest-rate">{{ nearestRate ?? '-' }}</span> Hz
+      <span
+        data-testid="nearest-rate"
+        aria-live="polite"
+      >{{ nearestRate ?? '-' }}</span> Hz
     </p>
     <p>
       {{ t('tests.mouse.samples') }}:
-      <span data-testid="polling-samples">{{ samples }}</span>
+      <span
+        data-testid="polling-samples"
+        aria-live="polite"
+      >{{ samples }}</span>
     </p>
     <p class="mouse-polling__hint">
       {{ t('tests.mouse.pollingHint') }}
