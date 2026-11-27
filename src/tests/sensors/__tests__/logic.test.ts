@@ -8,8 +8,9 @@ import {
   availabilityReducer,
   reduceSensorList,
   hasAnySensor,
-  allUnsupported,
+  sensorSummary,
 } from '../logic';
+import type { SensorKey } from '../logic';
 
 describe('lowPassFilter', () => {
   it('returns the sample when previous is null', () => {
@@ -17,8 +18,7 @@ describe('lowPassFilter', () => {
   });
 
   it('smooths toward the new sample', () => {
-    const out = lowPassFilter(0, 10, 0.5);
-    expect(out).toBe(5);
+    expect(lowPassFilter(0, 10, 0.5)).toBe(5);
   });
 
   it('alpha 0 keeps previous value', () => {
@@ -95,61 +95,208 @@ describe('estimateSampleRate', () => {
   it('returns null when no positive deltas', () => {
     expect(estimateSampleRate([5, 5, 5])).toBeNull();
   });
+
+  it('stays ~100 Hz despite a long gap (median)', () => {
+    const ts = [0, 10, 20, 30, 40, 50, 510, 520, 530];
+    expect(estimateSampleRate(ts)).toBeCloseTo(100, 6);
+  });
 });
 
 describe('availability reducer', () => {
-  it('starts all unknown', () => {
+  it('starts all unknown with no active sensors', () => {
     const s = initialAvailabilityState();
     expect(hasAnySensor(s)).toBe(false);
-    expect(allUnsupported(s)).toBe(false);
+    expect(sensorSummary(s)).toBe('pending');
   });
 
-  it('marks detected sensors supported', () => {
-    let s = initialAvailabilityState();
-    s = availabilityReducer(s, { type: 'detected', sensor: 'accelerometer' });
-    expect(s.accelerometer).toBe('supported');
+  it('api present marks sensor unknown (pending reading)', () => {
+    const s = availabilityReducer(initialAvailabilityState(), {
+      type: 'api',
+      sensor: 'accelerometer',
+      present: true,
+    });
+    expect(s.sensors.accelerometer.status).toBe('unknown');
+    expect(s.sensors.accelerometer.apiPresent).toBe(true);
+    expect(hasAnySensor(s)).toBe(false);
+    expect(sensorSummary(s)).toBe('pending');
+  });
+
+  it('api missing marks api-missing', () => {
+    const s = availabilityReducer(initialAvailabilityState(), {
+      type: 'api',
+      sensor: 'gyroscope',
+      present: false,
+    });
+    expect(s.sensors.gyroscope.status).toBe('api-missing');
+    expect(s.sensors.gyroscope.apiPresent).toBe(false);
+  });
+
+  it('a real reading with value activates the sensor', () => {
+    let s = availabilityReducer(initialAvailabilityState(), {
+      type: 'api',
+      sensor: 'accelerometer',
+      present: true,
+    });
+    s = availabilityReducer(s, {
+      type: 'reading',
+      sensor: 'accelerometer',
+      timestampMs: 100,
+      hasValue: true,
+    });
+    expect(s.sensors.accelerometer.status).toBe('active');
+    expect(s.sensors.accelerometer.lastReadingMs).toBe(100);
     expect(hasAnySensor(s)).toBe(true);
+    expect(sensorSummary(s)).toBe('some-active');
   });
 
-  it('marks missing sensors unsupported', () => {
-    let s = initialAvailabilityState();
-    s = availabilityReducer(s, { type: 'missing', sensor: 'gyroscope' });
-    expect(s.gyroscope).toBe('unsupported');
+  it('a null reading does not activate', () => {
+    let s = availabilityReducer(initialAvailabilityState(), {
+      type: 'api',
+      sensor: 'accelerometer',
+      present: true,
+    });
+    s = availabilityReducer(s, {
+      type: 'reading',
+      sensor: 'accelerometer',
+      timestampMs: 100,
+      hasValue: false,
+    });
+    expect(s.sensors.accelerometer.status).toBe('unknown');
+    expect(hasAnySensor(s)).toBe(false);
   });
 
-  it('reset restores initial state', () => {
-    let s = initialAvailabilityState();
-    s = availabilityReducer(s, { type: 'detected', sensor: 'accelerometer' });
-    s = availabilityReducer(s, { type: 'reset' });
-    expect(s.accelerometer).toBe('unknown');
+  it('error maps NotAllowedError to denied', () => {
+    let s = availabilityReducer(initialAvailabilityState(), {
+      type: 'api',
+      sensor: 'magnetometer',
+      present: true,
+    });
+    s = availabilityReducer(s, {
+      type: 'error',
+      sensor: 'magnetometer',
+      errorName: 'NotAllowedError',
+    });
+    expect(s.sensors.magnetometer.status).toBe('denied');
   });
 
-  it('reduceSensorList folds entries', () => {
-    const s = reduceSensorList([
-      ['accelerometer', true],
-      ['gyroscope', false],
-      ['vibration', true],
-    ]);
-    expect(s.accelerometer).toBe('supported');
-    expect(s.gyroscope).toBe('unsupported');
-    expect(s.vibration).toBe('supported');
-    expect(hasAnySensor(s)).toBe(true);
-    expect(allUnsupported(s)).toBe(false);
+  it('error maps NotReadableError to error', () => {
+    let s = availabilityReducer(initialAvailabilityState(), {
+      type: 'api',
+      sensor: 'magnetometer',
+      present: true,
+    });
+    s = availabilityReducer(s, {
+      type: 'error',
+      sensor: 'magnetometer',
+      errorName: 'NotReadableError',
+    });
+    expect(s.sensors.magnetometer.status).toBe('error');
   });
 
-  it('allUnsupported true when every tracked sensor missing', () => {
-    const entries: Array<[import('../logic').SensorKey, boolean]> = [
-      ['deviceOrientation', false],
-      ['deviceMotion', false],
-    ];
-    // all sensors present in state must be unsupported; reduceSensorList only sets listed ones
-    let s = reduceSensorList(entries);
-    // fill remaining as missing
-    for (const k of Object.keys(s) as import('../logic').SensorKey[]) {
-      if (s[k] !== 'unsupported') {
-        s = availabilityReducer(s, { type: 'missing', sensor: k });
-      }
+  it('tick times out a pending sensor with no reading', () => {
+    const windowMs = 100;
+    let s = initialAvailabilityState(windowMs);
+    s = availabilityReducer(s, { type: 'api', sensor: 'accelerometer', present: true });
+    for (const sn of ['deviceOrientation', 'deviceMotion', 'gyroscope', 'magnetometer', 'ambientLight'] as SensorKey[]) {
+      s = availabilityReducer(s, { type: 'api', sensor: sn, present: false });
     }
-    expect(allUnsupported(s)).toBe(true);
+    s = availabilityReducer(s, { type: 'tick', nowMs: 0 });
+    s = availabilityReducer(s, { type: 'tick', nowMs: 150 });
+    expect(s.sensors.accelerometer.status).toBe('no-data');
+    expect(sensorSummary(s)).toBe('none-detected');
+  });
+
+  it('tick keeps active sensor active while readings are fresh', () => {
+    const windowMs = 100;
+    let s = initialAvailabilityState(windowMs);
+    s = availabilityReducer(s, { type: 'api', sensor: 'accelerometer', present: true });
+    s = availabilityReducer(s, {
+      type: 'reading',
+      sensor: 'accelerometer',
+      timestampMs: 50,
+      hasValue: true,
+    });
+    s = availabilityReducer(s, { type: 'tick', nowMs: 100 });
+    expect(s.sensors.accelerometer.status).toBe('active');
+  });
+
+  it('tick marks active sensor no-data after a gap', () => {
+    const windowMs = 100;
+    let s = initialAvailabilityState(windowMs);
+    s = availabilityReducer(s, { type: 'api', sensor: 'accelerometer', present: true });
+    s = availabilityReducer(s, {
+      type: 'reading',
+      sensor: 'accelerometer',
+      timestampMs: 50,
+      hasValue: true,
+    });
+    s = availabilityReducer(s, { type: 'tick', nowMs: 200 });
+    expect(s.sensors.accelerometer.status).toBe('no-data');
+  });
+
+  it('reset restores windowMs and unknown state', () => {
+    let s = initialAvailabilityState(200);
+    s = availabilityReducer(s, { type: 'api', sensor: 'accelerometer', present: true });
+    s = availabilityReducer(s, { type: 'reset' });
+    expect(s.windowMs).toBe(200);
+    expect(s.sensors.accelerometer.status).toBe('unknown');
+    expect(s.sensors.accelerometer.apiPresent).toBe(false);
+  });
+
+  it('setWindow changes the window', () => {
+    let s = initialAvailabilityState(100);
+    s = availabilityReducer(s, { type: 'setWindow', windowMs: 250 });
+    expect(s.windowMs).toBe(250);
+  });
+
+  it('reduceSensorList only sets api presence, not active', () => {
+    const s = reduceSensorList(
+      [
+        ['accelerometer', true],
+        ['gyroscope', false],
+      ],
+      100,
+    );
+    expect(s.sensors.accelerometer.status).toBe('unknown');
+    expect(s.sensors.accelerometer.apiPresent).toBe(true);
+    expect(s.sensors.gyroscope.status).toBe('api-missing');
+    expect(hasAnySensor(s)).toBe(false);
+    expect(sensorSummary(s)).toBe('pending');
+  });
+
+  it('realistic sequence: desktop apis present but no readings -> none-detected', () => {
+    const w = 50;
+    let s = initialAvailabilityState(w);
+    const sensors: SensorKey[] = ['deviceOrientation', 'deviceMotion'];
+    for (const sn of sensors) {
+      s = availabilityReducer(s, { type: 'api', sensor: sn, present: true });
+    }
+    for (const sn of ['accelerometer', 'gyroscope', 'magnetometer', 'ambientLight'] as SensorKey[]) {
+      s = availabilityReducer(s, { type: 'api', sensor: sn, present: false });
+    }
+    s = availabilityReducer(s, { type: 'tick', nowMs: 0 });
+    s = availabilityReducer(s, { type: 'tick', nowMs: 100 });
+    expect(hasAnySensor(s)).toBe(false);
+    expect(sensorSummary(s)).toBe('none-detected');
+  });
+
+  it('realistic sequence: one real reading yields some-active', () => {
+    const w = 50;
+    let s = initialAvailabilityState(w);
+    s = availabilityReducer(s, { type: 'api', sensor: 'accelerometer', present: true });
+    s = availabilityReducer(s, {
+      type: 'reading',
+      sensor: 'accelerometer',
+      timestampMs: 10,
+      hasValue: true,
+    });
+    expect(hasAnySensor(s)).toBe(true);
+    expect(sensorSummary(s)).toBe('some-active');
+  });
+
+  it('screenOrientation and vibration are not in the sensor set', () => {
+    const s = initialAvailabilityState();
+    expect(Object.prototype.hasOwnProperty.call(s.sensors, 'screenOrientation')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(s.sensors, 'vibration')).toBe(false);
   });
 });

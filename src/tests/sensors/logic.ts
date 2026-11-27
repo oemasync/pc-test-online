@@ -1,7 +1,7 @@
 // Framework-free pure logic for the sensors module.
 // No Vue imports and no imports from src/core.
 
-export const RAD_TO_DEG = 180 / Math.PI;
+const RAD_TO_DEG = 180 / Math.PI;
 
 export type Vec3 = { x: number; y: number; z: number };
 
@@ -27,6 +27,8 @@ export function lowPassVector(previous: Vec3 | null, sample: Vec3, alpha: number
   };
 }
 
+// Tilt is derived from accelerationIncludingGravity (the gravity vector), not
+// from linear acceleration, because gravity provides the reference "down".
 export function tiltFromAcceleration(acc: Vec3): Tilt {
   const { x, y, z } = acc;
   const roll = Math.atan2(y, z) * RAD_TO_DEG;
@@ -41,8 +43,7 @@ export function estimateSampleRate(timestampsMs: readonly number[]): number | nu
   if (timestampsMs.length < 2) {
     return null;
   }
-  let sum = 0;
-  let count = 0;
+  const deltas: number[] = [];
   for (let i = 1; i < timestampsMs.length; i += 1) {
     const prev = timestampsMs[i - 1];
     const cur = timestampsMs[i];
@@ -51,18 +52,22 @@ export function estimateSampleRate(timestampsMs: readonly number[]): number | nu
     }
     const dt = cur - prev;
     if (dt > 0) {
-      sum += dt;
-      count += 1;
+      deltas.push(dt);
     }
   }
-  if (count === 0) {
+  if (deltas.length === 0) {
     return null;
   }
-  const mean = sum / count;
-  if (mean <= 0) {
+  const sorted = [...deltas].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const median =
+    sorted.length % 2 === 1
+      ? sorted[mid]!
+      : (sorted[mid - 1]! + sorted[mid]!) / 2;
+  if (median <= 0) {
     return null;
   }
-  return 1000 / mean;
+  return 1000 / median;
 }
 
 export type SensorKey =
@@ -71,30 +76,56 @@ export type SensorKey =
   | 'accelerometer'
   | 'gyroscope'
   | 'magnetometer'
-  | 'ambientLight'
-  | 'screenOrientation'
-  | 'vibration';
+  | 'ambientLight';
 
-export type Availability = 'unknown' | 'supported' | 'unsupported';
+export type SensorStatus = 'unknown' | 'api-missing' | 'no-data' | 'active' | 'denied' | 'error';
 
-export type AvailabilityState = Record<SensorKey, Availability>;
+export type SensorEntry = {
+  status: SensorStatus;
+  apiPresent: boolean;
+  lastReadingMs: number | null;
+  pendingSinceMs: number | null;
+};
+
+export type AvailabilityState = {
+  windowMs: number;
+  sensors: Record<SensorKey, SensorEntry>;
+};
 
 export type AvailabilityAction =
   | { type: 'reset' }
-  | { type: 'detected'; sensor: SensorKey }
-  | { type: 'missing'; sensor: SensorKey };
+  | { type: 'setWindow'; windowMs: number }
+  | { type: 'api'; sensor: SensorKey; present: boolean }
+  | { type: 'reading'; sensor: SensorKey; timestampMs: number; hasValue: boolean }
+  | { type: 'error'; sensor: SensorKey; errorName: string }
+  | { type: 'tick'; nowMs: number };
 
-export function initialAvailabilityState(): AvailabilityState {
-  return {
-    deviceOrientation: 'unknown',
-    deviceMotion: 'unknown',
-    accelerometer: 'unknown',
-    gyroscope: 'unknown',
-    magnetometer: 'unknown',
-    ambientLight: 'unknown',
-    screenOrientation: 'unknown',
-    vibration: 'unknown',
-  };
+const SENSOR_KEYS: SensorKey[] = [
+  'deviceOrientation',
+  'deviceMotion',
+  'accelerometer',
+  'gyroscope',
+  'magnetometer',
+  'ambientLight',
+];
+
+function makeEntry(): SensorEntry {
+  return { status: 'unknown', apiPresent: false, lastReadingMs: null, pendingSinceMs: null };
+}
+
+export function initialAvailabilityState(windowMs = 1000): AvailabilityState {
+  const sensors = {} as Record<SensorKey, SensorEntry>;
+  for (const key of SENSOR_KEYS) {
+    sensors[key] = makeEntry();
+  }
+  return { windowMs, sensors };
+}
+
+function mapErrorToStatus(errorName: string): SensorStatus {
+  if (errorName === 'NotAllowedError' || errorName === 'SecurityError') {
+    return 'denied';
+  }
+  return 'error';
 }
 
 export function availabilityReducer(
@@ -103,27 +134,101 @@ export function availabilityReducer(
 ): AvailabilityState {
   switch (action.type) {
     case 'reset':
-      return initialAvailabilityState();
-    case 'detected':
-      return { ...state, [action.sensor]: 'supported' };
-    case 'missing':
-      return { ...state, [action.sensor]: 'unsupported' };
-    default:
-      return state;
+      return initialAvailabilityState(state.windowMs);
+    case 'setWindow':
+      return { ...state, windowMs: action.windowMs };
+    case 'api': {
+      const sensors = { ...state.sensors };
+      sensors[action.sensor] = {
+        status: action.present ? 'unknown' : 'api-missing',
+        apiPresent: action.present,
+        lastReadingMs: null,
+        pendingSinceMs: null,
+      };
+      return { ...state, sensors };
+    }
+    case 'reading': {
+      const entry = state.sensors[action.sensor];
+      if (!entry || !entry.apiPresent) {
+        return state;
+      }
+      const sensors = { ...state.sensors };
+      if (action.hasValue) {
+        sensors[action.sensor] = {
+          ...entry,
+          status: 'active',
+          lastReadingMs: action.timestampMs,
+          pendingSinceMs: null,
+        };
+      }
+      return { ...state, sensors };
+    }
+    case 'error': {
+      const entry = state.sensors[action.sensor];
+      if (!entry) {
+        return state;
+      }
+      const sensors = { ...state.sensors };
+      sensors[action.sensor] = {
+        ...entry,
+        status: mapErrorToStatus(action.errorName),
+      };
+      return { ...state, sensors };
+    }
+    case 'tick': {
+      const sensors = { ...state.sensors };
+      for (const key of SENSOR_KEYS) {
+        const entry = sensors[key];
+        if (!entry || !entry.apiPresent) {
+          continue;
+        }
+        if (entry.status === 'unknown') {
+          const since = entry.pendingSinceMs ?? action.nowMs;
+          if (entry.lastReadingMs !== null) {
+            sensors[key] = { ...entry, status: 'active', pendingSinceMs: null };
+          } else if (action.nowMs - since >= state.windowMs) {
+            sensors[key] = { ...entry, status: 'no-data', pendingSinceMs: since };
+          } else {
+            sensors[key] = { ...entry, pendingSinceMs: since };
+          }
+        } else if (entry.status === 'active' && entry.lastReadingMs !== null) {
+          if (action.nowMs - entry.lastReadingMs >= state.windowMs) {
+            sensors[key] = { ...entry, status: 'no-data' };
+          }
+        }
+      }
+      return { ...state, sensors };
+    }
+    default: {
+      const _exhaustive: never = action;
+      return _exhaustive;
+    }
   }
 }
 
-export function reduceSensorList(entries: ReadonlyArray<readonly [SensorKey, boolean]>): AvailabilityState {
-  return entries.reduce<AvailabilityState>((state, entry) => {
-    const [sensor, present] = entry;
-    return availabilityReducer(state, present ? { type: 'detected', sensor } : { type: 'missing', sensor });
-  }, initialAvailabilityState());
+export function reduceSensorList(
+  entries: ReadonlyArray<readonly [SensorKey, boolean]>,
+  windowMs = 1000,
+): AvailabilityState {
+  let state = initialAvailabilityState(windowMs);
+  for (const [sensor, present] of entries) {
+    state = availabilityReducer(state, { type: 'api', sensor, present });
+  }
+  return state;
 }
 
 export function hasAnySensor(state: AvailabilityState): boolean {
-  return (Object.keys(state) as SensorKey[]).some((key) => state[key] === 'supported');
+  return SENSOR_KEYS.some((key) => state.sensors[key].status === 'active');
 }
 
-export function allUnsupported(state: AvailabilityState): boolean {
-  return (Object.keys(state) as SensorKey[]).every((key) => state[key] === 'unsupported');
+export type SensorSummary = 'some-active' | 'none-detected' | 'pending';
+
+export function sensorSummary(state: AvailabilityState): SensorSummary {
+  if (SENSOR_KEYS.some((key) => state.sensors[key].status === 'active')) {
+    return 'some-active';
+  }
+  if (SENSOR_KEYS.some((key) => state.sensors[key].status === 'unknown')) {
+    return 'pending';
+  }
+  return 'none-detected';
 }
