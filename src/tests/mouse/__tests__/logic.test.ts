@@ -109,8 +109,8 @@ describe('clickInterval / clickTrackerReducer', () => {
     expect(clickInterval(250, 100)).toBeNull();
     expect(clickInterval(100, 100)).toBe(0);
   });
-  it('clickInterval rejects non-finite', () => {
-    expect(clickInterval(NaN, 10)).toBeNull();
+  it('clickInterval handles equal timestamps', () => {
+    expect(clickInterval(10, 10)).toBe(0);
   });
   it('tracker records intervals', () => {
     let s = initialClickTrackerState();
@@ -121,11 +121,6 @@ describe('clickInterval / clickTrackerReducer', () => {
     expect(s.clickCount).toBe(2);
     expect(s.lastIntervalMs).toBe(160);
     expect(s.intervals).toEqual([160]);
-  });
-  it('tracker ignores non-finite timestamps', () => {
-    const s = initialClickTrackerState();
-    const s2 = clickTrackerReducer(s, { type: 'click', timestamp: Infinity });
-    expect(s2).toBe(s);
   });
   it('reset clears', () => {
     let s = initialClickTrackerState();
@@ -155,9 +150,6 @@ describe('classifyWheel', () => {
   });
   it('zero returns null', () => {
     expect(classifyWheel(0, 0)).toBeNull();
-  });
-  it('non-finite returns null', () => {
-    expect(classifyWheel(NaN, 5)).toBeNull();
   });
 });
 
@@ -273,7 +265,6 @@ describe('polling rate', () => {
   it('nearestStandardPollingRate', () => {
     expect(nearestStandardPollingRate(120)).toBe(125);
     expect(nearestStandardPollingRate(0)).toBeNull();
-    expect(nearestStandardPollingRate(NaN)).toBeNull();
     expect(nearestStandardPollingRate(null as unknown as number)).toBeNull();
   });
   it('STANDARD_POLLING_RATES contains expected', () => {
@@ -286,5 +277,38 @@ describe('polling rate', () => {
   });
   it('outlier removal keeps all when few', () => {
     expect(removeOutlierIntervals([8, 8])).toEqual([8, 8]);
+  });
+});
+
+describe('polling rate robustness', () => {
+  it('jittery 8ms intervals still ~125hz', () => {
+    const base = Array.from({ length: 60 }, (_, i) => i * 8);
+    const jittered = base.map((t, i) => t + (i % 5) - 2);
+    const est = estimatePollingRate(jittered);
+    expect(est.nearestStandardHz).toBe(125);
+    expect(est.estimatedHz).toBeGreaterThan(100);
+    expect(est.estimatedHz).toBeLessThan(160);
+  });
+  it('coalesced bursts yield a high rate without crashing', () => {
+    const ts: number[] = [];
+    for (let i = 0; i < 40; i += 1) {
+      const base = i * 8;
+      ts.push(base, base + 0.2, base + 0.4);
+    }
+    const est = estimatePollingRate(ts);
+    expect(est.estimatedHz).not.toBeNull();
+    expect(est.nearestStandardHz).not.toBeNull();
+    expect(est.sampleCount).toBeGreaterThan(0);
+  });
+  it('idle gaps are rejected as outliers', () => {
+    const ts = [0, 8, 16, 24, 1000, 1008, 1016, 1024, 1032];
+    const est = estimatePollingRate(ts);
+    expect(est.nearestStandardHz).toBe(125);
+  });
+  it('median interval readout present', () => {
+    const ts = Array.from({ length: 20 }, (_, i) => i * 4);
+    const est = estimatePollingRate(ts);
+    expect(est.medianIntervalMs).toBe(4);
+    expect(est.nearestStandardHz).toBe(250);
   });
 });

@@ -39,13 +39,6 @@ export function initialButtonState(): ButtonTestState {
   };
 }
 
-function cloneButtonState(state: ButtonTestState): ButtonTestState {
-  return {
-    pressed: state.pressed.slice(),
-    tested: state.tested.slice(),
-  };
-}
-
 export function buttonReducer(state: ButtonTestState, action: ButtonAction): ButtonTestState {
   switch (action.type) {
     case 'reset':
@@ -54,9 +47,8 @@ export function buttonReducer(state: ButtonTestState, action: ButtonAction): But
       if (!isMouseButton(action.button)) {
         return state;
       }
-      const next = cloneButtonState(state);
-      const pressed = next.pressed.slice();
-      const tested = next.tested.slice();
+      const pressed = state.pressed.slice();
+      const tested = state.tested.slice();
       pressed[action.button] = true;
       tested[action.button] = true;
       return { pressed, tested };
@@ -65,13 +57,15 @@ export function buttonReducer(state: ButtonTestState, action: ButtonAction): But
       if (!isMouseButton(action.button)) {
         return state;
       }
-      const next = cloneButtonState(state);
-      const pressed = next.pressed.slice();
+      const pressed = state.pressed.slice();
       pressed[action.button] = false;
-      return { pressed, tested: next.tested };
+      return { pressed, tested: state.tested.slice() };
     }
-    default:
+    default: {
+      const exhaustive: never = action;
+      void exhaustive;
       return state;
+    }
   }
 }
 
@@ -120,9 +114,6 @@ export function initialClickTrackerState(): ClickTrackerState {
 }
 
 export function clickInterval(firstMs: number, secondMs: number): number | null {
-  if (!Number.isFinite(firstMs) || !Number.isFinite(secondMs)) {
-    return null;
-  }
   const delta = secondMs - firstMs;
   if (delta < 0) {
     return null;
@@ -135,9 +126,6 @@ export function clickTrackerReducer(state: ClickTrackerState, action: ClickActio
     case 'reset':
       return initialClickTrackerState();
     case 'click': {
-      if (!Number.isFinite(action.timestamp)) {
-        return state;
-      }
       if (state.lastClickAt === null) {
         return {
           clickCount: state.clickCount + 1,
@@ -156,17 +144,19 @@ export function clickTrackerReducer(state: ClickTrackerState, action: ClickActio
         intervals: nextIntervals,
       };
     }
-    default:
+    default: {
+      const exhaustive: never = action;
+      void exhaustive;
       return state;
+    }
   }
 }
 
 export function medianClickInterval(intervals: readonly number[]): number | null {
-  const valid = intervals.filter((value) => Number.isFinite(value) && value >= 0);
-  if (valid.length === 0) {
+  if (intervals.length === 0) {
     return null;
   }
-  const sorted = [...valid].sort((left, right) => left - right);
+  const sorted = [...intervals].sort((left, right) => left - right);
   const middle = Math.floor(sorted.length / 2);
   if (sorted.length % 2 === 1) {
     return sorted[middle] as number;
@@ -181,9 +171,6 @@ export type WheelDirection = 'up' | 'down' | 'left' | 'right' | null;
 export type DeltaModeLabel = 'pixel' | 'line' | 'page' | 'unknown';
 
 export function classifyWheel(deltaX: number, deltaY: number): WheelDirection {
-  if (!Number.isFinite(deltaX) || !Number.isFinite(deltaY)) {
-    return null;
-  }
   if (deltaX === 0 && deltaY === 0) {
     return null;
   }
@@ -237,14 +224,6 @@ export function initialDragState(): DragState {
 }
 
 export function dragDistance(startX: number, startY: number, endX: number, endY: number): number {
-  if (
-    !Number.isFinite(startX) ||
-    !Number.isFinite(startY) ||
-    !Number.isFinite(endX) ||
-    !Number.isFinite(endY)
-  ) {
-    return 0;
-  }
   const dx = endX - startX;
   const dy = endY - startY;
   return Math.hypot(dx, dy);
@@ -255,9 +234,6 @@ export function dragReducer(state: DragState, action: DragAction): DragState {
     case 'reset':
       return initialDragState();
     case 'start': {
-      if (!Number.isFinite(action.x) || !Number.isFinite(action.y)) {
-        return state;
-      }
       return {
         dragging: true,
         startX: action.x,
@@ -270,9 +246,6 @@ export function dragReducer(state: DragState, action: DragAction): DragState {
     }
     case 'move': {
       if (!state.dragging || state.startX === null || state.startY === null) {
-        return state;
-      }
-      if (!Number.isFinite(action.x) || !Number.isFinite(action.y)) {
         return state;
       }
       return {
@@ -289,8 +262,8 @@ export function dragReducer(state: DragState, action: DragAction): DragState {
       if (state.startX === null || state.startY === null) {
         return state;
       }
-      const endX = Number.isFinite(action.x) ? action.x : (state.x ?? state.startX);
-      const endY = Number.isFinite(action.y) ? action.y : (state.y ?? state.startY);
+      const endX = action.x;
+      const endY = action.y;
       return {
         dragging: false,
         startX: state.startX,
@@ -301,15 +274,15 @@ export function dragReducer(state: DragState, action: DragAction): DragState {
         completed: true,
       };
     }
-    default:
+    default: {
+      const exhaustive: never = action;
+      void exhaustive;
       return state;
+    }
   }
 }
 
 export function isDrag(distance: number, threshold: number = 5): boolean {
-  if (!Number.isFinite(distance) || !Number.isFinite(threshold)) {
-    return false;
-  }
   return distance >= threshold;
 }
 
@@ -343,12 +316,6 @@ export function isChatter(
   if (previousDownMs === null) {
     return false;
   }
-  if (!Number.isFinite(previousDownMs) || !Number.isFinite(currentDownMs)) {
-    return false;
-  }
-  if (thresholdMs <= 0 || !Number.isFinite(thresholdMs)) {
-    return false;
-  }
   const delta = currentDownMs - previousDownMs;
   if (delta < 0) {
     return false;
@@ -361,9 +328,6 @@ export function chatterReducer(state: ChatterState, action: ChatterAction): Chat
     case 'reset':
       return initialChatterState();
     case 'mousedown': {
-      if (!Number.isFinite(action.timestamp)) {
-        return state;
-      }
       const threshold = action.thresholdMs ?? DEFAULT_CHATTER_THRESHOLD_MS;
       const chatter = isChatter(state.lastDownAt, action.timestamp, threshold);
       return {
@@ -373,8 +337,11 @@ export function chatterReducer(state: ChatterState, action: ChatterAction): Chat
           state.lastDownAt === null ? null : action.timestamp - state.lastDownAt,
       };
     }
-    default:
+    default: {
+      const exhaustive: never = action;
+      void exhaustive;
       return state;
+    }
   }
 }
 
@@ -405,12 +372,8 @@ function median(values: readonly number[]): number {
   return ((sorted[middle - 1] as number) + (sorted[middle] as number)) / 2;
 }
 
-function isFinitePositive(value: number): boolean {
-  return Number.isFinite(value) && value > 0;
-}
-
 export function removeOutlierIntervals(intervals: readonly number[]): number[] {
-  const valid = intervals.filter(isFinitePositive);
+  const valid = intervals.filter((value) => value > 0);
   if (valid.length < 3) {
     return [...valid];
   }
@@ -436,9 +399,6 @@ export function intervalsFromTimestamps(timestamps: readonly number[]): number[]
     if (prev === undefined || cur === undefined) {
       continue;
     }
-    if (!Number.isFinite(prev) || !Number.isFinite(cur)) {
-      continue;
-    }
     const delta = cur - prev;
     if (delta > 0) {
       intervals.push(delta);
@@ -449,7 +409,7 @@ export function intervalsFromTimestamps(timestamps: readonly number[]): number[]
 
 export function estimatePollingRate(timestamps: readonly number[]): PollingRateEstimate {
   const intervals = intervalsFromTimestamps(timestamps);
-  const valid = intervals.filter(isFinitePositive);
+  const valid = intervals.filter((value) => value > 0);
   const accepted = removeOutlierIntervals(valid);
   const medianIntervalMs = accepted.length > 0 ? median(accepted) : null;
   const estimatedHz =
@@ -465,8 +425,8 @@ export function estimatePollingRate(timestamps: readonly number[]): PollingRateE
   };
 }
 
-export function nearestStandardPollingRate(hz: number | null | undefined): StandardPollingRate | null {
-  if (typeof hz !== 'number' || !Number.isFinite(hz) || hz <= 0) {
+export function nearestStandardPollingRate(hz: number): StandardPollingRate | null {
+  if (hz <= 0) {
     return null;
   }
   let nearest: StandardPollingRate = STANDARD_POLLING_RATES[0];
