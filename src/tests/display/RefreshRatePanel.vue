@@ -21,27 +21,39 @@
     <dl class="refresh-panel__list">
       <div>
         <dt>{{ t('tests.display.refresh.estimatedHz') }}</dt>
-        <dd aria-live="polite">{{ estimate?.estimatedHz?.toFixed(2) ?? '—' }}</dd>
+        <dd aria-live="polite">
+          {{ estimate?.estimatedHz?.toFixed(2) ?? '—' }}
+        </dd>
       </div>
       <div>
         <dt>{{ t('tests.display.refresh.nearestStandard') }}</dt>
-        <dd aria-live="polite">{{ estimate?.nearestStandardHz ?? '—' }}</dd>
+        <dd aria-live="polite">
+          {{ estimate?.nearestStandardHz ?? '—' }}
+        </dd>
       </div>
       <div>
         <dt>{{ t('tests.display.refresh.medianInterval') }}</dt>
-        <dd aria-live="polite">{{ estimate?.medianIntervalMs?.toFixed(2) ?? '—' }} ms</dd>
+        <dd aria-live="polite">
+          {{ estimate?.medianIntervalMs?.toFixed(2) ?? '—' }} ms
+        </dd>
       </div>
       <div>
         <dt>{{ t('tests.display.refresh.samples') }}</dt>
-        <dd aria-live="polite">{{ estimate?.sampleCount ?? 0 }}</dd>
+        <dd aria-live="polite">
+          {{ estimate?.sampleCount ?? 0 }}
+        </dd>
       </div>
       <div>
         <dt>{{ t('tests.display.refresh.rejected') }}</dt>
-        <dd aria-live="polite">{{ estimate?.rejectedCount ?? 0 }}</dd>
+        <dd aria-live="polite">
+          {{ estimate?.rejectedCount ?? 0 }}
+        </dd>
       </div>
       <div>
         <dt>{{ t('tests.display.refresh.jitter') }}</dt>
-        <dd aria-live="polite">{{ jitter?.standardDeviationMs?.toFixed(2) ?? '—' }} ms</dd>
+        <dd aria-live="polite">
+          {{ jitter?.standardDeviationMs?.toFixed(2) ?? '—' }} ms
+        </dd>
       </div>
     </dl>
   </section>

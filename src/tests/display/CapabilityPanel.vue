@@ -4,11 +4,15 @@
     <dl class="capability-panel__list">
       <div>
         <dt>{{ t('tests.display.capability.dynamicRange') }}</dt>
-        <dd aria-live="polite">{{ dynamicRangeLabel }}</dd>
+        <dd aria-live="polite">
+          {{ dynamicRangeLabel }}
+        </dd>
       </div>
       <div>
         <dt>{{ t('tests.display.capability.colorGamut') }}</dt>
-        <dd aria-live="polite">{{ colorGamutLabel }}</dd>
+        <dd aria-live="polite">
+          {{ colorGamutLabel }}
+        </dd>
       </div>
     </dl>
   </section>
