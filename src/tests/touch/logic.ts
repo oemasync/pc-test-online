@@ -19,7 +19,7 @@ export interface PointerSample {
 export interface NormalizedPoint {
     x: number;
     y: number;
-    pointerId?: number;
+    pointerId: number;
 }
 
 export interface CoverageGrid {
@@ -42,12 +42,12 @@ export function isTouchSupported(maxTouchPoints: number): boolean {
 // ---------- Coverage grid ----------
 
 export function createCoverageGrid(rows: number, cols: number): CoverageGrid {
-    const safeRows = rows > 0 ? rows : 0;
-    const safeCols = cols > 0 ? cols : 0;
+    const r = rows > 0 ? rows : 0;
+    const c = cols > 0 ? cols : 0;
     return {
-        rows: safeRows,
-        cols: safeCols,
-        hit: new Array<boolean>(safeRows * safeCols).fill(false),
+        rows: r,
+        cols: c,
+        hit: new Array<boolean>(r * c).fill(false),
     };
 }
 
@@ -103,53 +103,37 @@ export function markPath(
     grid: CoverageGrid,
     samples: ReadonlyArray<NormalizedPoint>,
 ): CoverageGrid {
-    const next = cloneGrid(grid);
-    if (samples.length === 0) return next;
+    if (samples.length === 0) return grid; // same grid, no clone
 
-    const hasPointerId = samples.some((s) => s.pointerId !== undefined);
-    const groups: Array<ReadonlyArray<NormalizedPoint>> = [];
-    if (hasPointerId) {
-        const byId = new Map<number, NormalizedPoint[]>();
-        const noId: NormalizedPoint[] = [];
-        for (const s of samples) {
-            if (s.pointerId === undefined) {
-                noId.push(s);
-            } else {
-                const existing = byId.get(s.pointerId);
-                if (existing) {
-                    existing.push(s);
-                } else {
-                    byId.set(s.pointerId, [s]);
-                }
-            }
+    const next = cloneGrid(grid);
+
+    // Group by pointer so interpolation never crosses fingers.
+    const byId = new Map<number, NormalizedPoint[]>();
+    for (const s of samples) {
+        const existing = byId.get(s.pointerId);
+        if (existing) {
+            existing.push(s);
+        } else {
+            byId.set(s.pointerId, [s]);
         }
-        for (const g of byId.values()) groups.push(g);
-        if (noId.length > 0) groups.push(noId);
-    } else {
-        groups.push(samples);
     }
 
-    for (const group of groups) {
-        for (let i = 0; i < group.length; i += 1) {
-            const point = group[i];
-            if (!point) continue;
+    for (const group of byId.values()) {
+        let prevCell: { row: number; col: number } | null = null;
+        for (const point of group) {
             const cell = pointToCell(point.x, point.y, next.rows, next.cols);
-            if (cell) {
-                next.hit[cell.row * next.cols + cell.col] = true;
+            if (!cell) {
+                prevCell = null;
+                continue;
             }
-            if (i > 0) {
-                const prev = group[i - 1];
-                if (!prev) continue;
-                const prevCell = pointToCell(prev.x, prev.y, next.rows, next.cols);
-                if (prevCell && cell) {
-                    const cells = lineCells(prevCell.row, prevCell.col, cell.row, cell.col);
-                    for (const [r, c] of cells) {
-                        if (r >= 0 && r < next.rows && c >= 0 && c < next.cols) {
-                            next.hit[r * next.cols + c] = true;
-                        }
-                    }
+            next.hit[cell.row * next.cols + cell.col] = true;
+            if (prevCell) {
+                const cells = lineCells(prevCell.row, prevCell.col, cell.row, cell.col);
+                for (const [r, c] of cells) {
+                    next.hit[r * next.cols + c] = true;
                 }
             }
+            prevCell = cell;
         }
     }
     return next;
@@ -167,43 +151,16 @@ export function coverageRatio(grid: CoverageGrid): number {
     return coveredCount(grid) / total;
 }
 
-export function isFullyCovered(grid: CoverageGrid): boolean {
-    const total = grid.rows * grid.cols;
-    if (total === 0) return false;
-    return coveredCount(grid) === total;
-}
-
 // ---------- Reducer for coverage ----------
 
 export type CoverageAction =
     | { type: 'reset'; rows: number; cols: number }
-    | { type: 'markCell'; row: number; col: number }
-    | { type: 'markPoint'; x: number; y: number }
     | { type: 'markPath'; samples: ReadonlyArray<NormalizedPoint> };
 
 export function coverageReducer(grid: CoverageGrid, action: CoverageAction): CoverageGrid {
     switch (action.type) {
         case 'reset':
             return createCoverageGrid(action.rows, action.cols);
-        case 'markCell': {
-            const next = cloneGrid(grid);
-            if (
-                action.row >= 0 &&
-                action.row < grid.rows &&
-                action.col >= 0 &&
-                action.col < grid.cols
-            ) {
-                next.hit[action.row * grid.cols + action.col] = true;
-            }
-            return next;
-        }
-        case 'markPoint': {
-            const cell = pointToCell(action.x, action.y, grid.rows, grid.cols);
-            if (!cell) return cloneGrid(grid);
-            const next = cloneGrid(grid);
-            next.hit[cell.row * grid.cols + cell.col] = true;
-            return next;
-        }
         case 'markPath':
             return markPath(grid, action.samples);
         default: {

@@ -6,7 +6,6 @@ import {
     markPath,
     coveredCount,
     coverageRatio,
-    isFullyCovered,
     coverageReducer,
     createPointerTracker,
     pointerTrackerReducer,
@@ -29,7 +28,6 @@ describe('coverage grid', () => {
         const g = createCoverageGrid(0, 5);
         expect(g.rows * g.cols).toBe(0);
         expect(coverageRatio(g)).toBe(0);
-        expect(isFullyCovered(g)).toBe(false);
     });
 
     it('pointToCell maps normalized coordinates', () => {
@@ -81,10 +79,10 @@ describe('coverage grid', () => {
         expect(coveredCount(g2)).toBe(2);
     });
 
-    it('markPath with empty samples returns clone unchanged', () => {
+    it('markPath with empty samples returns the same grid', () => {
         const g = createCoverageGrid(2, 2);
         const g2 = markPath(g, []);
-        expect(coveredCount(g2)).toBe(0);
+        expect(g2).toBe(g);
     });
 
     it('markPath interpolates a single finger path', () => {
@@ -96,29 +94,27 @@ describe('coverage grid', () => {
         expect(coveredCount(g2)).toBeGreaterThan(1);
     });
 
-    it('coverageReducer reset/markCell/markPoint/markPath', () => {
+    it('coverageReducer reset/markPath', () => {
         let g = createCoverageGrid(2, 2);
         g = coverageReducer(g, { type: 'reset', rows: 3, cols: 3 });
         expect(g.rows * g.cols).toBe(9);
-        g = coverageReducer(g, { type: 'markCell', row: 1, col: 1 });
+        g = coverageReducer(g, { type: 'markPath', samples: [{ x: 0.5, y: 0.5, pointerId: 1 }] });
         expect(coveredCount(g)).toBe(1);
-        g = coverageReducer(g, { type: 'markPoint', x: 0, y: 0 });
-        expect(coveredCount(g)).toBe(2);
         const before = coveredCount(g);
-        g = coverageReducer(g, { type: 'markPath', samples: [{ x: 0, y: 0 }, { x: 1, y: 1 }] });
+        g = coverageReducer(g, { type: 'markPath', samples: [{ x: 0, y: 0, pointerId: 1 }, { x: 1, y: 1, pointerId: 1 }] });
         expect(coveredCount(g)).toBeGreaterThanOrEqual(before);
     });
 
-    it('coverageRatio and isFullyCovered', () => {
+    it('coverageRatio reaches 1 when all cells covered', () => {
         const g = createCoverageGrid(2, 2);
-        expect(coverageRatio(g)).toBe(0);
-        let g2 = g;
-        g2 = coverageReducer(g2, { type: 'markCell', row: 0, col: 0 });
-        g2 = coverageReducer(g2, { type: 'markCell', row: 0, col: 1 });
-        g2 = coverageReducer(g2, { type: 'markCell', row: 1, col: 0 });
-        g2 = coverageReducer(g2, { type: 'markCell', row: 1, col: 1 });
+        const samples: NormalizedPoint[] = [
+            { x: 0.25, y: 0.25, pointerId: 1 },
+            { x: 0.75, y: 0.25, pointerId: 1 },
+            { x: 0.25, y: 0.75, pointerId: 1 },
+            { x: 0.75, y: 0.75, pointerId: 1 },
+        ];
+        const g2 = markPath(g, samples);
         expect(coverageRatio(g2)).toBe(1);
-        expect(isFullyCovered(g2)).toBe(true);
     });
 });
 
