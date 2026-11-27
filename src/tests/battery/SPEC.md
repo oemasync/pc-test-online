@@ -14,29 +14,32 @@ a short window to estimate the instantaneous drain/charge rate and derive an ETA
 - Events: `chargingchange`, `chargingtimechange`, `dischargingtimechange`, `levelchange`.
 
 ## Browser-support caveats
-- Chromium only. Firefox removed the API for privacy; Safari never shipped it.
-- `isSupported` is derived from `'getBattery' in navigator`.
-- Values can be `Infinity`; handle without crashing.
-- `chargingTime`/`dischargingTime` may be `Infinity` or 0; treat as "unknown".
+- Chromium only. Firefox removed the API; Safari never shipped it.
+- Support is derived from `'getBattery' in navigator`.
+- `chargingTime`/`dischargingTime` can be `Infinity` (unknown) or `0` (e.g. at 100% while charging); display `Infinity` as unknown.
+- Level is quantized to 1% steps, so a single step cannot yield a meaningful rate; require >= 2 distinct level values in the sampling window.
 
 ## UX flow
-1. On mount, check `isSupported`. If false, show unsupported message (no crash).
+1. On mount, check support. If false, show unsupported message (no crash).
 2. Call `navigator.getBattery()`, render level/charging/times.
-3. Subscribe to `levelchange`/`chargingchange` (and time-change events) to update live.
-4. Sample level readings into a rolling window; compute drain/charge rate and ETA.
-5. User confirms specs match reality, then Pass or Fail (via TestLayout).
+3. Subscribe to events to update live.
+4. Sample level readings into a rolling window; compute drain/charge rate (least-squares slope) and ETA. Return null rate until the window spans >= 2 distinct levels.
+5. User confirms specs match reality, then Pass (`complete`) or Fail (via TestLayout).
 
 ## Pass/Fail
-- Pass: readings are plausible and stable; user confirms.
-- Fail: API missing, values implausible (e.g. level stuck, NaN), or user reports mismatch.
+- Pass: readings plausible and stable; user confirms (produces `complete`).
+- Fail: API missing, values implausible (stuck level), or user reports mismatch.
 
 ## `details` keys recorded
 - `supported: boolean`
 - `levelPercent: number`
 - `charging: boolean`
-- `chargingTimeSeconds: number`
-- `dischargingTimeSeconds: number`
-- `ratePerSecond: number` (level fraction per second; signed)
-- `etaSeconds: number` (to full if charging, to empty if discharging; -1 if unknown)
+- `chargingTimeSeconds: number` (Infinity allowed)
+- `dischargingTimeSeconds: number` (Infinity allowed)
+- `ratePerSecond: number | null`
+- `etaSeconds: number | null`
 - `sampleCount: number`
-" content">
+
+## Logic notes
+- `durationParts(seconds)` returns `{ hours, minutes, seconds } | null`; the UI localizes the labels.
+- `reduceBatteryPhase` is exhaustive; unknown events throw.

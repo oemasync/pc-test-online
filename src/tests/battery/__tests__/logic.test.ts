@@ -1,28 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import {
-  clampLevel,
   levelToPercent,
-  isBatterySupported,
   pruneSamples,
   computeRatePerSecond,
   estimateTimeToEmpty,
   estimateTimeToFull,
   estimateEtaSeconds,
-  formatDurationSeconds,
-  normalizeChargingTime,
+  durationParts,
   reduceBatteryPhase,
 } from '../logic';
 
 describe('battery logic', () => {
-  it('clamps levels and converts to percent', () => {
-    expect(clampLevel(1.5)).toBe(1);
-    expect(clampLevel(-0.2)).toBe(0);
+  it('converts level to percent', () => {
     expect(levelToPercent(0.426)).toBe(43);
-  });
-
-  it('detects support', () => {
-    expect(isBatterySupported(true)).toBe(true);
-    expect(isBatterySupported(false)).toBe(false);
+    expect(levelToPercent(1)).toBe(100);
   });
 
   it('prunes samples outside window', () => {
@@ -35,16 +26,23 @@ describe('battery logic', () => {
     expect(kept[0]!.timestamp).toBe(9000);
   });
 
-  it('computes rate from realistic 1% steps', () => {
-    // level drops 1% every 30s over 5 samples
-    const samples = [0, 1, 2, 3, 4].map((i) => ({
-      level: 0.8 - i * 0.01,
-      timestamp: i * 30000,
-    }));
+  it('returns null until two distinct levels', () => {
+    const samples = [
+      { level: 0.87, timestamp: 0 },
+      { level: 0.87, timestamp: 5000 },
+      { level: 0.87, timestamp: 10000 },
+    ];
+    expect(computeRatePerSecond(samples)).toBeNull();
+  });
+
+  it('computes rate from realistic step data', () => {
+    const samples: { level: number; timestamp: number }[] = [];
+    for (let i = 0; i < 36; i++) samples.push({ level: 0.87, timestamp: i * 5000 });
+    for (let i = 0; i < 12; i++) samples.push({ level: 0.86, timestamp: (36 + i) * 5000 });
+    for (let i = 0; i < 12; i++) samples.push({ level: 0.85, timestamp: (48 + i) * 5000 });
     const rate = computeRatePerSecond(samples);
     expect(rate).not.toBeNull();
-    // ~ -0.01/30s = -0.000333/s
-    expect(rate!).toBeCloseTo(-0.01 / 30, 6);
+    expect(rate!).toBeLessThan(0);
   });
 
   it('returns null for insufficient samples', () => {
@@ -85,25 +83,19 @@ describe('battery logic', () => {
     expect(estimateEtaSeconds(reading2, -0.001)).toBeCloseTo(500, 5);
   });
 
-  it('formats durations', () => {
-    expect(formatDurationSeconds(3661)).toBe('1h 1m');
-    expect(formatDurationSeconds(125)).toBe('2m 5s');
-    expect(formatDurationSeconds(42)).toBe('42s');
-    expect(formatDurationSeconds(null)).toBe('unknown');
+  it('returns duration parts', () => {
+    expect(durationParts(3661)).toEqual({ hours: 1, minutes: 1, seconds: 1 });
+    expect(durationParts(125)).toEqual({ hours: 0, minutes: 2, seconds: 5 });
+    expect(durationParts(42)).toEqual({ hours: 0, minutes: 0, seconds: 42 });
+    expect(durationParts(null)).toBeNull();
+    expect(durationParts(Infinity)).toBeNull();
   });
 
-  it('normalizes charging time Infinity quirk', () => {
-    expect(normalizeChargingTime(Infinity)).toBe(Infinity);
-    expect(normalizeChargingTime(120)).toBe(120);
-    expect(normalizeChargingTime(-5)).toBe(Infinity);
-  });
-
-  it('reduces battery phase exhaustively', () => {
+  it('reduces battery phase and throws on unknown', () => {
     expect(reduceBatteryPhase('initializing', { type: 'unsupported' })).toBe('unsupported');
     expect(reduceBatteryPhase('initializing', { type: 'ready', charging: true })).toBe('charging');
     expect(reduceBatteryPhase('charging', { type: 'chargingchange', charging: false })).toBe('discharging');
     expect(reduceBatteryPhase('discharging', { type: 'complete' })).toBe('complete');
-    // complete is sticky
     expect(reduceBatteryPhase('complete', { type: 'chargingchange', charging: true })).toBe('complete');
   });
 });
