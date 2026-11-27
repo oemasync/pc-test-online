@@ -47,6 +47,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { advanceColorSequence, createColorSequenceState } from './logic';
+import { useFullscreen } from './useFullscreen';
 import type { ColorSequenceEvent, DisplayColor } from './logic';
 
 const emit = defineEmits<{
@@ -58,7 +59,7 @@ const { t } = useI18n();
 const stageRef = ref<HTMLElement | null>(null);
 const state = ref(createColorSequenceState(0));
 const defects = ref<DisplayColor[]>([]);
-const fullscreenUnavailable = ref(false);
+const { unavailable: fullscreenUnavailable, request: requestFullscreen } = useFullscreen(stageRef);
 
 const colorName = computed(() => state.value.color);
 const colorValue = computed(() => state.value.color);
@@ -85,20 +86,7 @@ function markDefect(): void {
 }
 
 async function startFullscreen(): Promise<void> {
-    const element = stageRef.value;
-    if (!element) return;
-
-    fullscreenUnavailable.value = false;
-    if (typeof element.requestFullscreen !== 'function') {
-        fullscreenUnavailable.value = true;
-        return;
-    }
-
-    try {
-        await element.requestFullscreen();
-    } catch {
-        fullscreenUnavailable.value = true;
-    }
+    await requestFullscreen();
 }
 
 function onKeyDown(event: KeyboardEvent): void {

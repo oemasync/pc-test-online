@@ -3,8 +3,6 @@
 
 export const DISPLAY_COLORS = ['black', 'white', 'red', 'green', 'blue', 'gray'] as const;
 
-export const PIXEL_CYCLE_COLOURS = DISPLAY_COLORS;
-
 export const GRADIENT_STOPS = {
     horizontal: 'linear-gradient(90deg, #000, #fff)',
     vertical: 'linear-gradient(180deg, #000, #fff)',
@@ -106,9 +104,14 @@ export function normalizeColorIndex(index: number): number {
 export function createColorSequenceState(index: number = 0): ColorSequenceState {
     const normalizedIndex = normalizeColorIndex(index);
 
+    const color = DISPLAY_COLORS[normalizedIndex];
+    if (color === undefined) {
+        throw new RangeError('Invalid display color index');
+    }
+
     return {
         index: normalizedIndex,
-        color: DISPLAY_COLORS[normalizedIndex] as DisplayColor,
+        color,
     };
 }
 

@@ -36,6 +36,7 @@
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { UNIFORMITY_BLACK } from './logic';
+import { useFullscreen } from './useFullscreen';
 
 const emit = defineEmits<{ (e: 'update:bleed', value: boolean): void }>();
 
@@ -43,23 +44,13 @@ const { t } = useI18n();
 const stageRef = ref<HTMLElement | null>(null);
 const active = ref(false);
 const bleed = ref(false);
-const fullscreenUnavailable = ref(false);
+const { unavailable: fullscreenUnavailable, request: requestFullscreen } = useFullscreen(stageRef);
 
 async function showBlack(): Promise<void> {
     const element = stageRef.value;
     if (!element) return;
     active.value = true;
-    fullscreenUnavailable.value = false;
-    if (typeof element.requestFullscreen !== 'function') {
-        fullscreenUnavailable.value = true;
-        return;
-    }
-
-    try {
-        await element.requestFullscreen();
-    } catch {
-        fullscreenUnavailable.value = true;
-    }
+    await requestFullscreen();
 }
 
 watch(bleed, value => emit('update:bleed', value));

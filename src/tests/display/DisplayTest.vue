@@ -10,7 +10,7 @@
     </template>
 
     <PixelCyclePanel
-      @color-change="currentColor = $event"
+      @color-change="handleColorChange"
       @defects-change="defectColors = $event"
     />
     <GradientPanel @update:banding="gradientBanding = $event" />
@@ -40,7 +40,6 @@ import SharpnessPanel from './SharpnessPanel.vue';
 import RefreshRatePanel from './RefreshRatePanel.vue';
 import CapabilityPanel from './CapabilityPanel.vue';
 import {
-    DISPLAY_COLORS,
     buildDisplayDetails,
     displayCapabilityFromMediaQueries,
     normalizeDevicePixelRatio,
@@ -49,7 +48,13 @@ import type { DisplayColor, DisplayCapability, JitterStats, RefreshRateEstimate 
 
 const { t } = useI18n();
 const currentColor = ref<DisplayColor>('black');
+const viewedColors = ref<Set<DisplayColor>>(new Set([currentColor.value]));
 const defectColors = ref<DisplayColor[]>([]);
+
+function handleColorChange(color: DisplayColor): void {
+    currentColor.value = color;
+    viewedColors.value = new Set(viewedColors.value).add(color);
+}
 const gradientBanding = ref(false);
 const backlightBleed = ref(false);
 const sharpnessDefect = ref(false);
@@ -70,7 +75,7 @@ const canPass = computed(
 
 const details = computed(() =>
     buildDisplayDetails({
-        colorsTested: DISPLAY_COLORS.length,
+        colorsTested: viewedColors.value.size,
         defectsFound:
             defectColors.value.length +
             (gradientBanding.value ? 1 : 0) +
