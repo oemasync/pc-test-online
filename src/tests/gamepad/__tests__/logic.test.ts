@@ -48,6 +48,31 @@ describe('detectStickDrift', () => {
     expect(result.noise).toBeGreaterThan(0);
   });
 
+  it('does not report drift for zero-mean noise', () => {
+    const samples = Array.from({ length: 200 }, (_, index) => {
+      const angle = (2 * Math.PI * index) / 200;
+      return { x: 0.08 * Math.cos(angle), y: 0.08 * Math.sin(angle) };
+    });
+
+    const result = detectStickDrift(samples, 0.1);
+
+    expect(result.drifting).toBe(false);
+    expect(result.meanOffset).toBeLessThan(0.001);
+    expect(result.noise).toBeCloseTo(0.08, 2);
+  });
+
+  it('reports drift for a biased stick with the same noise', () => {
+    const samples = Array.from({ length: 200 }, (_, index) => {
+      const angle = (2 * Math.PI * index) / 200;
+      return { x: 0.2 + 0.08 * Math.cos(angle), y: 0.08 * Math.sin(angle) };
+    });
+
+    const result = detectStickDrift(samples, 0.1);
+
+    expect(result.drifting).toBe(true);
+    expect(result.meanOffset).toBeCloseTo(0.2, 2);
+  });
+
   it('reports a biased stick as drifting', () => {
     const samples = [
       { x: 0.3, y: 0.1 },
@@ -120,8 +145,11 @@ describe('button coverage', () => {
     const covered = createCoverage(3);
 
     expect(buttonCoverageReducer(covered, 1)).toEqual([false, true, false]);
-    expect(buttonCoverageReducer(covered, 5)).toEqual(covered);
-    expect(buttonCoverageReducer(covered, -1)).toEqual(covered);
+    expect(buttonCoverageReducer(covered, 5)).toBe(covered);
+    expect(buttonCoverageReducer(covered, -1)).toBe(covered);
+
+    const marked = buttonCoverageReducer(covered, 1);
+    expect(buttonCoverageReducer(marked, 1)).toBe(marked);
   });
 
   it('summarizes tested buttons', () => {

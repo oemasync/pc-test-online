@@ -70,21 +70,26 @@ export function detectStickDrift(
     };
   }
 
-  const offsets = samples.map((sample) => {
-    const x = clampUnit(sample.x);
-    const y = clampUnit(sample.y);
-    return Math.hypot(x, y);
-  });
-
-  const meanOffset =
-    offsets.reduce((sum, offset) => sum + offset, 0) / offsets.length;
-  const maxOffset = Math.max(...offsets);
-  const variance =
-    offsets.reduce((sum, offset) => {
-      const difference = offset - meanOffset;
-      return sum + difference * difference;
-    }, 0) / offsets.length;
-  const noise = Math.sqrt(variance);
+  const clamped = samples.map((sample) => ({
+    x: clampUnit(sample.x),
+    y: clampUnit(sample.y),
+  }));
+  const meanX =
+    clamped.reduce((sum, point) => sum + point.x, 0) / clamped.length;
+  const meanY =
+    clamped.reduce((sum, point) => sum + point.y, 0) / clamped.length;
+  const meanOffset = Math.hypot(meanX, meanY);
+  const maxOffset = clamped.reduce(
+    (max, point) => Math.max(max, Math.hypot(point.x, point.y)),
+    0,
+  );
+  const noise = Math.sqrt(
+    clamped.reduce((sum, point) => {
+      const differenceX = point.x - meanX;
+      const differenceY = point.y - meanY;
+      return sum + differenceX * differenceX + differenceY * differenceY;
+    }, 0) / clamped.length,
+  );
 
   return {
     meanOffset,
@@ -98,8 +103,7 @@ export function circularityError(
   samples: readonly StickPoint[],
   sectors = CIRCULARITY_SECTORS,
 ): CircularityResult {
-  const totalSectors =
-    Number.isFinite(sectors) && sectors > 0 ? Math.trunc(sectors) : 1;
+  const totalSectors = Math.max(1, Math.trunc(sectors));
   const hasSample = new Array<boolean>(totalSectors).fill(false);
   const maxRadius = new Array<number>(totalSectors).fill(0);
   let coveredSectors = 0;
@@ -131,7 +135,7 @@ export function circularityError(
   let totalError = 0;
 
   for (let sector = 0; sector < totalSectors; sector += 1) {
-    if (hasSample[sector] === true) {
+    if (hasSample[sector]) {
       totalError += Math.abs((maxRadius[sector] ?? 0) - 1);
     }
   }
@@ -148,7 +152,7 @@ export function circularityError(
 }
 
 export function createCoverage(count: number): boolean[] {
-  const size = Number.isFinite(count) && count > 0 ? Math.trunc(count) : 0;
+  const size = Math.max(0, Math.trunc(count));
   return new Array<boolean>(size).fill(false);
 }
 
@@ -156,12 +160,8 @@ export function buttonCoverageReducer(
   covered: readonly boolean[],
   buttonIndex: number,
 ): readonly boolean[] {
-  if (
-    !Number.isInteger(buttonIndex) ||
-    buttonIndex < 0 ||
-    buttonIndex >= covered.length
-  ) {
-    return covered.slice();
+  if (buttonIndex < 0 || buttonIndex >= covered.length || covered[buttonIndex]) {
+    return covered;
   }
 
   const next = covered.slice();
