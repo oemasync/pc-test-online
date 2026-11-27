@@ -8,8 +8,8 @@ export interface BatterySample {
 export interface BatteryReading {
   level: number; // 0..1
   charging: boolean;
-  chargingTime: number; // seconds; Infinity when unknown
-  dischargingTime: number; // seconds; Infinity when unknown
+  chargingTime: number | null; // seconds; null when unknown (API Infinity)
+  dischargingTime: number | null; // seconds; null when unknown (API Infinity)
 }
 
 export interface DurationParts {
@@ -18,18 +18,12 @@ export interface DurationParts {
   seconds: number;
 }
 
-export type BatteryPhase =
-  | 'unsupported'
-  | 'initializing'
-  | 'charging'
-  | 'discharging'
-  | 'complete';
+export type BatteryPhase = 'unsupported' | 'initializing' | 'charging' | 'discharging';
 
 export type BatteryEvent =
   | { type: 'unsupported' }
   | { type: 'ready'; charging: boolean }
-  | { type: 'chargingchange'; charging: boolean }
-  | { type: 'complete' };
+  | { type: 'chargingchange'; charging: boolean };
 
 export function pruneSamples(
   samples: readonly BatterySample[],
@@ -40,30 +34,50 @@ export function pruneSamples(
   return samples.filter((s) => s.timestamp >= cutoff);
 }
 
-// Rate estimation needs >= 2 distinct level values in the window; a single
-// quantized 1% step is not enough to derive a meaningful slope.
+// Map the API's Infinity (unknown) to null at the boundary.
+export function toNullableSeconds(value: number): number | null {
+  if (!Number.isFinite(value)) return null;
+  return value;
+}
+
+// Rate estimation requires >= 3 distinct level values (two observed changes);
+// a single 1% step is too noisy.
 export function computeRatePerSecond(samples: readonly BatterySample[]): number | null {
   if (samples.length < 2) return null;
   const distinctLevels = new Set(samples.map((s) => s.level));
-  if (distinctLevels.size < 2) return null;
+  if (distinctLevels.size < 3) return null;
 
-  const n = samples.length;
+  // Group by level: use mean timestamp per distinct level to handle 1% quantization.
+  const groups = new Map<number, { sumT: number; count: number }>();
+  for (const s of samples) {
+    const g = groups.get(s.level);
+    if (g) {
+      g.sumT += s.timestamp;
+      g.count += 1;
+    } else {
+      groups.set(s.level, { sumT: s.timestamp, count: 1 });
+    }
+  }
+  const points = [...groups.entries()].map(([level, g]) => ({
+    t: g.sumT / g.count / 1000,
+    level,
+  }));
+  if (points.length < 3) return null;
+
+  const n = points.length;
   let sumT = 0;
   let sumL = 0;
   let sumTT = 0;
   let sumTL = 0;
-  for (const s of samples) {
-    const t = s.timestamp / 1000;
-    const l = s.level;
-    sumT += t;
-    sumL += l;
-    sumTT += t * t;
-    sumTL += t * l;
+  for (const p of points) {
+    sumT += p.t;
+    sumL += p.level;
+    sumTT += p.t * p.t;
+    sumTL += p.t * p.level;
   }
   const denom = n * sumTT - sumT * sumT;
   if (denom === 0) return null;
   const slope = (n * sumTL - sumT * sumL) / denom;
-  if (!Number.isFinite(slope)) return null;
   return slope;
 }
 
@@ -73,7 +87,6 @@ export function estimateTimeToEmpty(
 ): number | null {
   if (ratePerSecond >= 0) return null;
   const seconds = currentLevel / -ratePerSecond;
-  if (seconds < 0) return null;
   return seconds;
 }
 
@@ -83,7 +96,6 @@ export function estimateTimeToFull(
 ): number | null {
   if (ratePerSecond <= 0) return null;
   const seconds = (1 - currentLevel) / ratePerSecond;
-  if (seconds < 0) return null;
   return seconds;
 }
 
@@ -99,7 +111,6 @@ export function estimateEtaSeconds(
 // Returns structured parts so the UI can localize. null when unknown.
 export function durationParts(seconds: number | null): DurationParts | null {
   if (seconds === null) return null;
-  if (!Number.isFinite(seconds) || seconds < 0) return null;
   const total = Math.round(seconds);
   return {
     hours: Math.floor(total / 3600),
@@ -108,8 +119,6 @@ export function durationParts(seconds: number | null): DurationParts | null {
   };
 }
 
-// 'complete' is produced by an explicit user confirmation (Pass) after the
-// battery reading has been verified against the machine.
 export function reduceBatteryPhase(phase: BatteryPhase, event: BatteryEvent): BatteryPhase {
   switch (event.type) {
     case 'unsupported':
@@ -117,10 +126,7 @@ export function reduceBatteryPhase(phase: BatteryPhase, event: BatteryEvent): Ba
     case 'ready':
       return event.charging ? 'charging' : 'discharging';
     case 'chargingchange':
-      if (phase === 'complete') return phase;
       return event.charging ? 'charging' : 'discharging';
-    case 'complete':
-      return 'complete';
     default: {
       const _exhaustive: never = event;
       throw new Error(`unhandled battery event: ${JSON.stringify(_exhaustive)}`);

@@ -17,17 +17,17 @@ a short window to estimate the instantaneous drain/charge rate and derive an ETA
 - Chromium only. Firefox removed the API; Safari never shipped it.
 - Support is derived from `'getBattery' in navigator`.
 - `chargingTime`/`dischargingTime` can be `Infinity` (unknown) or `0` (e.g. at 100% while charging); display `Infinity` as unknown.
-- Level is quantized to 1% steps, so a single step cannot yield a meaningful rate; require >= 2 distinct level values in the sampling window.
+- Level is quantized to 1% steps, so a single step cannot yield a meaningful rate; require >= 3 distinct level values (two observed changes) in the sampling window.
 
 ## UX flow
 1. On mount, check support. If false, show unsupported message (no crash).
 2. Call `navigator.getBattery()`, render level/charging/times.
 3. Subscribe to events to update live.
-4. Sample level readings into a rolling window; compute drain/charge rate (least-squares slope) and ETA. Return null rate until the window spans >= 2 distinct levels.
-5. User confirms specs match reality, then Pass (`complete`) or Fail (via TestLayout).
+4. Sample level readings into a rolling window; compute drain/charge rate (least-squares slope) and ETA. Return null rate until the window spans >= 3 distinct levels.
+5. User confirms specs match reality, then Pass or Fail (via TestLayout / results store).
 
 ## Pass/Fail
-- Pass: readings plausible and stable; user confirms (produces `complete`).
+- Pass: readings plausible and stable; user confirms.
 - Fail: API missing, values implausible (stuck level), or user reports mismatch.
 
 ## `details` keys recorded
