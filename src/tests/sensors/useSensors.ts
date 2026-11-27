@@ -38,6 +38,7 @@ export function useSensors() {
   const vibrationSupported = ref(false);
   const needsPermission = ref(false);
   const permissionStatus = ref<'granted' | 'denied' | 'not-required'>('not-required');
+  const permissionError = ref<string | null>(null);
 
   const genericSensors: Partial<Record<SensorKey, SensorInstance>> = {};
   let tickTimer: number | null = null;
@@ -211,6 +212,7 @@ export function useSensors() {
         if (result !== 'granted') {
           needsPermission.value = true;
           permissionStatus.value = 'denied';
+          permissionError.value = null;
           return;
         }
       }
@@ -220,14 +222,17 @@ export function useSensors() {
         if (result !== 'granted') {
           needsPermission.value = true;
           permissionStatus.value = 'denied';
+          permissionError.value = null;
           return;
         }
       }
       needsPermission.value = false;
       permissionStatus.value = 'granted';
-    } catch {
+      permissionError.value = null;
+    } catch (err) {
       needsPermission.value = true;
       permissionStatus.value = 'denied';
+      permissionError.value = err instanceof Error ? err.name : 'Error';
     }
   }
 
@@ -274,6 +279,7 @@ export function useSensors() {
     vibrationSupported,
     needsPermission,
     permissionStatus,
+    permissionError,
     sensorKeys,
     summary,
     canPass,

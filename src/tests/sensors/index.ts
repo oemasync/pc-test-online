@@ -7,7 +7,10 @@ const module: TestModule = {
   titleKey: 'tests.sensors.title',
   descriptionKey: 'tests.sensors.description',
   component: () => import('./SensorsTest.vue'),
-  isSupported: () => true,
+  isSupported: () =>
+    'DeviceOrientationEvent' in window ||
+    'DeviceMotionEvent' in window ||
+    'Accelerometer' in window,
 }
 
 export default module

@@ -19,6 +19,8 @@ describe('SensorsTest', () => {
   })
 
   it('removes listeners, clears timers and stops sensors on unmount', () => {
+    vi.useRealTimers()
+
     const stopSpy = vi.fn()
     class FakeSensor {
       start = vi.fn()
@@ -28,6 +30,8 @@ describe('SensorsTest', () => {
     }
     vi.stubGlobal('Accelerometer', FakeSensor)
 
+    const intervalId = 77
+    const setSpy = vi.spyOn(window, 'setInterval').mockReturnValue(intervalId as unknown as ReturnType<typeof setInterval>)
     const removeSpy = vi.spyOn(window, 'removeEventListener')
     const clearSpy = vi.spyOn(window, 'clearInterval')
 
@@ -36,9 +40,10 @@ describe('SensorsTest', () => {
 
     expect(removeSpy).toHaveBeenCalledWith('deviceorientation', expect.any(Function))
     expect(removeSpy).toHaveBeenCalledWith('devicemotion', expect.any(Function))
-    expect(clearSpy).toHaveBeenCalled()
+    expect(clearSpy).toHaveBeenCalledWith(intervalId)
     expect(stopSpy).toHaveBeenCalled()
 
+    setSpy.mockRestore()
     removeSpy.mockRestore()
     clearSpy.mockRestore()
     vi.unstubAllGlobals()

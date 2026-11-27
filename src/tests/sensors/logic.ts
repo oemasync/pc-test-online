@@ -60,10 +60,17 @@ export function estimateSampleRate(timestampsMs: readonly number[]): number | nu
   }
   const sorted = [...deltas].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  const median =
-    sorted.length % 2 === 1
-      ? sorted[mid]!
-      : (sorted[mid - 1]! + sorted[mid]!) / 2;
+  let median: number;
+  if (sorted.length % 2 === 1) {
+    const value = sorted[mid];
+    if (value === undefined) return null;
+    median = value;
+  } else {
+    const left = sorted[mid - 1];
+    const right = sorted[mid];
+    if (left === undefined || right === undefined) return null;
+    median = (left + right) / 2;
+  }
   if (median <= 0) {
     return null;
   }
@@ -113,10 +120,14 @@ function makeEntry(): SensorEntry {
 }
 
 export function initialAvailabilityState(windowMs = 1000): AvailabilityState {
-  const sensors = {} as Record<SensorKey, SensorEntry>;
-  for (const key of SENSOR_KEYS) {
-    sensors[key] = makeEntry();
-  }
+  const sensors: Record<SensorKey, SensorEntry> = {
+    deviceOrientation: makeEntry(),
+    deviceMotion: makeEntry(),
+    accelerometer: makeEntry(),
+    gyroscope: makeEntry(),
+    magnetometer: makeEntry(),
+    ambientLight: makeEntry(),
+  };
   return { windowMs, sensors };
 }
 
