@@ -2,9 +2,9 @@
 
 ## Purpose
 
-The `display` module checks whether a monitor/panel is suitable for PC use. It covers
-dead or stuck pixels, backlight bleed and uniformity, gradient banding, fine-pattern
-sharpness and scaling, refresh rate and frame pacing, and HDR/color-gamut capability.
+The `display` module checks whether a monitor/panel is suitable for PC use. It covers dead or stuck
+pixels, backlight bleed and uniformity, gradient banding, fine-pattern sharpness and scaling,
+refresh rate and frame pacing, and HDR/color-gamut capability.
 
 ## Browser APIs
 
@@ -31,18 +31,17 @@ All names below are the standard MDN-documented APIs. No vendor-prefixed variant
 
 ## Browser-support caveats
 
-- Fullscreen must be requested from a user gesture. It can be rejected by the browser
-  or unavailable in embedded/locked-down contexts.
-- Mobile browsers, especially iOS Safari, have limited or no fullscreen support for
-  arbitrary elements.
-- `requestAnimationFrame` is throttled or paused in background tabs, so refresh-rate
-  measurement is only meaningful while the page is visible.
-- rAF can also be throttled by battery saver, background-tab policy, or iframe
-  containment. The measured rate is therefore a floor: keep the tab focused and on
-  the display under test, and treat a lower-than-expected result as "at least this
-  rate" rather than a failure.
-- `dynamic-range` and `color-gamut` media queries report capability, not whether HDR
-  content is actually being displayed.
+- Fullscreen must be requested from a user gesture. It can be rejected by the browser or unavailable
+  in embedded/locked-down contexts.
+- Mobile browsers, especially iOS Safari, have limited or no fullscreen support for arbitrary
+  elements.
+- `requestAnimationFrame` is throttled or paused in background tabs, so refresh-rate measurement is
+  only meaningful while the page is visible.
+- rAF can also be throttled by battery saver, background-tab policy, or iframe containment. The
+  measured rate is therefore a floor: keep the tab focused and on the display under test, and treat
+  a lower-than-expected result as "at least this rate" rather than a failure.
+- `dynamic-range` and `color-gamut` media queries report capability, not whether HDR content is
+  actually being displayed.
 - `devicePixelRatio` can be fractional and can change when moving between displays.
 - The module must degrade gracefully and never crash when an API is unavailable.
 
@@ -57,10 +56,9 @@ All names below are the standard MDN-documented APIs. No vendor-prefixed variant
    - The user inspects the panel and marks any visible defect.
 3. Gradient banding test displays smooth gradients for visual inspection.
 4. Backlight-bleed/uniformity test displays a black screen in fullscreen.
-5. Sharpness test displays 1px checkerboard and line patterns scaled to
-   `devicePixelRatio`.
-6. Refresh-rate test collects `requestAnimationFrame` intervals, removes outliers,
-   reports median interval, estimated Hz, and nearest standard rate.
+5. Sharpness test displays 1px checkerboard and line patterns scaled to `devicePixelRatio`.
+6. Refresh-rate test collects `requestAnimationFrame` intervals, removes outliers, reports median
+   interval, estimated Hz, and nearest standard rate.
 7. Frame-pacing test reports jitter statistics for the collected intervals.
 8. Capability test reports dynamic range, color gamut, and likely HDR support.
 9. The user marks defects found; those values are recorded in `details`.

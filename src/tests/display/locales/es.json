@@ -1,0 +1,54 @@
+{
+  "title": "Prueba de pantalla",
+  "description": "Comprueba píxeles muertos, uniformidad, degradados, nitidez, tasa de refresco y capacidad HDR.",
+  "instructions": "Ejecuta cada panel, marca cualquier defecto y luego aprueba o falla.",
+  "pixelCycle": {
+    "title": "Ciclo de píxeles muertos / atascados",
+    "startFullscreen": "Iniciar ciclo a pantalla completa",
+    "exitHint": "Pulsa Esc para salir. Las flechas o Espacio cambian de color; clic avanza.",
+    "currentColor": "Color actual",
+    "markDefect": "Marcar defecto en este color",
+    "defects": "Colores con defectos marcados"
+  },
+  "gradient": {
+    "title": "Bandeado de degradados",
+    "description": "Busca saltos visibles en los degradados.",
+    "markBanding": "Bandeado visible"
+  },
+  "uniformity": {
+    "title": "Fuga de retroiluminación / uniformidad",
+    "description": "Observa la pantalla negra en una habitación oscura.",
+    "startFullscreen": "Mostrar pantalla negra a pantalla completa",
+    "markBleed": "Fuga o brillo visible"
+  },
+  "sharpness": {
+    "title": "Nitidez de patrones finos",
+    "description": "Tablero y líneas de 1 px escalados a la relación de píxeles del dispositivo.",
+    "markDefect": "Defecto de nitidez visible"
+  },
+  "refresh": {
+    "title": "Tasa de refresco",
+    "start": "Medir tasa de refresco",
+    "stop": "Detener",
+    "focusHint": "Mantén esta pestaña enfocada en la pantalla que pruebas.",
+    "estimatedHz": "Tasa estimada",
+    "nearestStandard": "Tasa estándar más cercana",
+    "medianInterval": "Intervalo medio de fotograma",
+    "samples": "Muestras",
+    "rejected": "Valores atípicos rechazados",
+    "jitter": "Variación de ritmo de fotogramas"
+  },
+  "capability": {
+    "title": "Capacidad HDR / gama",
+    "dynamicRange": "Rango dinámico",
+    "colorGamut": "Gama de color",
+    "standard": "Estándar",
+    "high": "Alta",
+    "srgb": "sRGB",
+    "p3": "Display P3",
+    "rec2020": "Rec. 2020"
+  },
+  "defectsFound": "Defectos encontrados",
+  "devicePixelRatio": "Relación de píxeles del dispositivo",
+  "fullscreenSupported": "Pantalla completa admitida"
+}
