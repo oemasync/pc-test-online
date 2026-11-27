@@ -66,7 +66,8 @@ about a covered lens or frozen frame.
 
 ## Pure logic tested
 
-- `estimateFps(timestamps)`: frames per second from millisecond timestamps.
+- `estimateFps(timestamps)`: frames per second from millisecond timestamps using
+  the median interval in the supplied window.
 - `luminanceStats(data)`: single-pass mean, population variance, min, max, and
   sample count over an RGBA buffer.
 - `isCoveredLens(stats, options)`: true when mean luminance is at most 10 and
@@ -75,8 +76,8 @@ about a covered lens or frozen frame.
   presented within 1000 ms by default.
 - `frameDifference(a, b)`: mean absolute luminance difference between two RGBA
   buffers.
-- `isStaticFrame(differences, epsilon, requiredCount)`: true when the last 3
-  differences are at most 2 by default.
+- `isStaticFrame(differences, epsilon, requiredCount)`: true when the last 30
+  differences are at most 0.25 by default.
 
 ## Recorded details
 

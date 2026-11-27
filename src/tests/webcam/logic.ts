@@ -24,34 +24,45 @@ const BLUE_WEIGHT = 0.0722;
 const DEFAULT_COVERED_LENS_LUMINANCE_THRESHOLD = 10;
 const DEFAULT_COVERED_LENS_VARIANCE_THRESHOLD = 100;
 const DEFAULT_STALL_TIMEOUT_MS = 1000;
-const DEFAULT_STATIC_EPSILON = 2;
-const DEFAULT_STATIC_FRAME_COUNT = 3;
+const DEFAULT_STATIC_EPSILON = 0.25;
+const DEFAULT_STATIC_FRAME_COUNT = 30;
+
+function luma(data: Uint8ClampedArray, offset: number): number {
+  return (
+    RED_WEIGHT * (data[offset] as number) +
+    GREEN_WEIGHT * (data[offset + 1] as number) +
+    BLUE_WEIGHT * (data[offset + 2] as number)
+  );
+}
 
 /**
  * Estimate a frame rate in frames per second from frame timestamps.
  *
- * Timestamps are expected to be in milliseconds.
+ * Uses the median interval in the supplied window so one long stall does not
+ * skew the live readout. Timestamps are expected to be in milliseconds.
  */
 export function estimateFps(timestamps: readonly number[]): number {
   if (timestamps.length < 2) {
     return 0;
   }
 
-  for (const timestamp of timestamps) {
-    if (!Number.isFinite(timestamp)) {
-      return 0;
-    }
+  const intervals: number[] = [];
+  for (let index = 1; index < timestamps.length; index += 1) {
+    intervals.push((timestamps[index] as number) - (timestamps[index - 1] as number));
   }
 
-  const first = timestamps[0] as number;
-  const last = timestamps[timestamps.length - 1] as number;
-  const spanMs = last - first;
+  intervals.sort((left, right) => left - right);
+  const middle = Math.floor(intervals.length / 2);
+  const medianInterval =
+    intervals.length % 2 === 1
+      ? (intervals[middle] as number)
+      : ((intervals[middle - 1] as number) + (intervals[middle] as number)) / 2;
 
-  if (spanMs <= 0) {
+  if (medianInterval <= 0) {
     return 0;
   }
 
-  return ((timestamps.length - 1) * 1000) / spanMs;
+  return 1000 / medianInterval;
 }
 
 /**
@@ -78,11 +89,7 @@ export function luminanceStats(data: Uint8ClampedArray): LuminanceStats {
 
   for (let index = 0; index < pixelCount; index += 1) {
     const offset = index * 4;
-    const red = data[offset] as number;
-    const green = data[offset + 1] as number;
-    const blue = data[offset + 2] as number;
-    const luminance =
-      RED_WEIGHT * red + GREEN_WEIGHT * green + BLUE_WEIGHT * blue;
+    const luminance = luma(data, offset);
 
     count += 1;
     const delta = luminance - mean;
@@ -138,17 +145,7 @@ export function isFrameStalled(
   }
 
   const last = timestamps[timestamps.length - 1] as number;
-
-  if (!Number.isFinite(last) || !Number.isFinite(now)) {
-    return true;
-  }
-
-  const timeout =
-    Number.isFinite(stallTimeoutMs) && stallTimeoutMs >= 0
-      ? stallTimeoutMs
-      : DEFAULT_STALL_TIMEOUT_MS;
-
-  return now - last > timeout;
+  return now - last > stallTimeoutMs;
 }
 
 /**
@@ -172,18 +169,8 @@ export function frameDifference(
   let sum = 0;
 
   for (let index = 0; index < pixelCountA; index += 1) {
-    const offsetA = index * 4;
-    const offsetB = index * 4;
-    const luminanceA =
-      RED_WEIGHT * (a[offsetA] as number) +
-      GREEN_WEIGHT * (a[offsetA + 1] as number) +
-      BLUE_WEIGHT * (a[offsetA + 2] as number);
-    const luminanceB =
-      RED_WEIGHT * (b[offsetB] as number) +
-      GREEN_WEIGHT * (b[offsetB + 1] as number) +
-      BLUE_WEIGHT * (b[offsetB + 2] as number);
-
-    sum += Math.abs(luminanceA - luminanceB);
+    const offset = index * 4;
+    sum += Math.abs(luma(a, offset) - luma(b, offset));
   }
 
   return sum / pixelCountA;
@@ -197,19 +184,13 @@ export function isStaticFrame(
   epsilon: number = DEFAULT_STATIC_EPSILON,
   requiredCount: number = DEFAULT_STATIC_FRAME_COUNT,
 ): boolean {
-  const count =
-    Number.isInteger(requiredCount) && requiredCount > 0
-      ? requiredCount
-      : DEFAULT_STATIC_FRAME_COUNT;
-  const threshold = Number.isFinite(epsilon) ? epsilon : DEFAULT_STATIC_EPSILON;
-
-  if (differences.length < count) {
+  if (differences.length < requiredCount) {
     return false;
   }
 
-  for (let index = differences.length - count; index < differences.length; index += 1) {
+  for (let index = differences.length - requiredCount; index < differences.length; index += 1) {
     const difference = differences[index] as number;
-    if (!Number.isFinite(difference) || difference > threshold) {
+    if (difference > epsilon) {
       return false;
     }
   }
