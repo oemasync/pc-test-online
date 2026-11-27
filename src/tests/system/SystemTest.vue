@@ -5,7 +5,10 @@
     :details="details"
     :can-pass="true"
   >
-    <div class="system-test">
+    <div
+      class="system-test"
+      aria-live="polite"
+    >
       <div class="system-test__actions">
         <button
           type="button"
@@ -228,23 +231,19 @@ async function collect(): Promise<void> {
     }
 
     // GPU via WebGL
-    try {
-        const canvas = document.createElement('canvas');
-        const gl = (canvas.getContext('webgl') ||
-            canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
-        if (gl) {
-            glContext = gl;
-            const ext = gl.getExtension('WEBGL_debug_renderer_info');
-            if (ext) {
-                const renderer = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) as string;
-                const vendor = gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) as string;
-                const parsed = parseGpu(String(renderer ?? ''));
-                gpuRenderer.value = parsed.renderer;
-                gpuVendor.value = vendor ? String(vendor) : parsed.vendor;
-            }
+    const canvas = document.createElement('canvas');
+    const gl = (canvas.getContext('webgl') ||
+        canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
+    if (gl) {
+        glContext = gl;
+        const ext = gl.getExtension('WEBGL_debug_renderer_info');
+        if (ext) {
+            const renderer = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) as string;
+            const vendor = gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) as string;
+            const parsed = parseGpu(String(renderer ?? ''));
+            gpuRenderer.value = parsed.renderer;
+            gpuVendor.value = vendor ? String(vendor) : parsed.vendor;
         }
-    } catch {
-        // leave unknown
     }
 
     // WebGPU
@@ -286,20 +285,10 @@ async function collect(): Promise<void> {
     screenHeight.value = window.screen?.height ?? 0;
     dpr.value = window.devicePixelRatio ?? 1;
     colorDepth.value = window.screen?.colorDepth ?? 0;
-    try {
-        colorGamut.value =
-            ['p3', 'srgb', 'rec2020'].find(g => window.matchMedia(`(color-gamut: ${g})`).matches) ??
-            'srgb';
-    } catch {
-        colorGamut.value = 'unknown';
-    }
-    try {
-        dynamicRange.value = window.matchMedia('(dynamic-range: high)').matches
-            ? 'high'
-            : 'standard';
-    } catch {
-        dynamicRange.value = 'standard';
-    }
+    colorGamut.value =
+        ['rec2020', 'p3', 'srgb'].find(g => window.matchMedia(`(color-gamut: ${g})`).matches) ??
+        'srgb';
+    dynamicRange.value = window.matchMedia('(dynamic-range: high)').matches ? 'high' : 'standard';
 
     // Storage
     if (navigator.storage?.estimate) {

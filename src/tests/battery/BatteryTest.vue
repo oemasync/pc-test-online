@@ -16,6 +16,20 @@
     </TestLayout>
   </div>
 
+  <div
+    v-else-if="loadError"
+    class="battery-test"
+  >
+    <TestLayout
+      test-id="battery"
+      :title="t('tests.battery.title')"
+      :details="details"
+      :can-pass="false"
+    >
+      <p>{{ t('tests.battery.loadError') }}</p>
+    </TestLayout>
+  </div>
+
   <TestLayout
     v-else
     test-id="battery"
@@ -24,7 +38,10 @@
     :can-pass="hasReading"
   >
     <div class="battery-test">
-      <div class="battery-test__status">
+      <div
+        class="battery-test__status"
+        aria-live="polite"
+      >
         <StatTile
           :label="t('tests.battery.levelLabel')"
           :value="`${levelPercent}%`"
@@ -90,6 +107,7 @@ const chargingTime = ref<number | null>(null);
 const dischargingTime = ref<number | null>(null);
 const samples = ref<BatterySample[]>([]);
 const hasReading = ref(false);
+const loadError = ref(false);
 
 const WINDOW_MS = 120000;
 const levelPercent = computed(() => levelToPercent(level.value));
@@ -158,9 +176,9 @@ let onChange: (() => void) | null = null;
 onMounted(async () => {
     if (!isSupported) return;
     try {
-        const b = (await (
+        const b = await (
             navigator as unknown as { getBattery: () => Promise<BatteryManagerLike> }
-        ).getBattery()) as BatteryManagerLike;
+        ).getBattery();
         battery.value = b;
         syncFromBattery(b);
         onChange = () => syncFromBattery(b);
@@ -169,7 +187,7 @@ onMounted(async () => {
         b.addEventListener('chargingtimechange', onChange);
         b.addEventListener('dischargingtimechange', onChange);
     } catch {
-        hasReading.value = false;
+        loadError.value = true;
     }
 });
 
