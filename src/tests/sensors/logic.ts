@@ -34,8 +34,8 @@ export function tiltFromAcceleration(acc: Vec3): Tilt {
   const roll = Math.atan2(y, z) * RAD_TO_DEG;
   const pitch = Math.atan2(-x, Math.hypot(y, z)) * RAD_TO_DEG;
   return {
-    pitch: Number.isFinite(pitch) ? pitch : 0,
-    roll: Number.isFinite(roll) ? roll : 0,
+    pitch,
+    roll,
   };
 }
 
@@ -94,7 +94,6 @@ export type AvailabilityState = {
 
 export type AvailabilityAction =
   | { type: 'reset' }
-  | { type: 'setWindow'; windowMs: number }
   | { type: 'api'; sensor: SensorKey; present: boolean }
   | { type: 'reading'; sensor: SensorKey; timestampMs: number; hasValue: boolean }
   | { type: 'error'; sensor: SensorKey; errorName: string }
@@ -135,8 +134,6 @@ export function availabilityReducer(
   switch (action.type) {
     case 'reset':
       return initialAvailabilityState(state.windowMs);
-    case 'setWindow':
-      return { ...state, windowMs: action.windowMs };
     case 'api': {
       const sensors = { ...state.sensors };
       sensors[action.sensor] = {
@@ -149,7 +146,7 @@ export function availabilityReducer(
     }
     case 'reading': {
       const entry = state.sensors[action.sensor];
-      if (!entry || !entry.apiPresent) {
+      if (!entry.apiPresent) {
         return state;
       }
       const sensors = { ...state.sensors };
@@ -165,9 +162,6 @@ export function availabilityReducer(
     }
     case 'error': {
       const entry = state.sensors[action.sensor];
-      if (!entry) {
-        return state;
-      }
       const sensors = { ...state.sensors };
       sensors[action.sensor] = {
         ...entry,
@@ -179,14 +173,12 @@ export function availabilityReducer(
       const sensors = { ...state.sensors };
       for (const key of SENSOR_KEYS) {
         const entry = sensors[key];
-        if (!entry || !entry.apiPresent) {
+        if (!entry.apiPresent) {
           continue;
         }
         if (entry.status === 'unknown') {
           const since = entry.pendingSinceMs ?? action.nowMs;
-          if (entry.lastReadingMs !== null) {
-            sensors[key] = { ...entry, status: 'active', pendingSinceMs: null };
-          } else if (action.nowMs - since >= state.windowMs) {
+          if (action.nowMs - since >= state.windowMs) {
             sensors[key] = { ...entry, status: 'no-data', pendingSinceMs: since };
           } else {
             sensors[key] = { ...entry, pendingSinceMs: since };
@@ -215,10 +207,6 @@ export function reduceSensorList(
     state = availabilityReducer(state, { type: 'api', sensor, present });
   }
   return state;
-}
-
-export function hasAnySensor(state: AvailabilityState): boolean {
-  return SENSOR_KEYS.some((key) => state.sensors[key].status === 'active');
 }
 
 export type SensorSummary = 'some-active' | 'none-detected' | 'pending';

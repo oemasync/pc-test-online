@@ -7,7 +7,6 @@ import {
   initialAvailabilityState,
   availabilityReducer,
   reduceSensorList,
-  hasAnySensor,
   sensorSummary,
 } from '../logic';
 import type { SensorKey } from '../logic';
@@ -105,7 +104,6 @@ describe('estimateSampleRate', () => {
 describe('availability reducer', () => {
   it('starts all unknown with no active sensors', () => {
     const s = initialAvailabilityState();
-    expect(hasAnySensor(s)).toBe(false);
     expect(sensorSummary(s)).toBe('pending');
   });
 
@@ -117,7 +115,6 @@ describe('availability reducer', () => {
     });
     expect(s.sensors.accelerometer.status).toBe('unknown');
     expect(s.sensors.accelerometer.apiPresent).toBe(true);
-    expect(hasAnySensor(s)).toBe(false);
     expect(sensorSummary(s)).toBe('pending');
   });
 
@@ -145,7 +142,6 @@ describe('availability reducer', () => {
     });
     expect(s.sensors.accelerometer.status).toBe('active');
     expect(s.sensors.accelerometer.lastReadingMs).toBe(100);
-    expect(hasAnySensor(s)).toBe(true);
     expect(sensorSummary(s)).toBe('some-active');
   });
 
@@ -162,7 +158,6 @@ describe('availability reducer', () => {
       hasValue: false,
     });
     expect(s.sensors.accelerometer.status).toBe('unknown');
-    expect(hasAnySensor(s)).toBe(false);
   });
 
   it('error maps NotAllowedError to denied', () => {
@@ -243,12 +238,6 @@ describe('availability reducer', () => {
     expect(s.sensors.accelerometer.apiPresent).toBe(false);
   });
 
-  it('setWindow changes the window', () => {
-    let s = initialAvailabilityState(100);
-    s = availabilityReducer(s, { type: 'setWindow', windowMs: 250 });
-    expect(s.windowMs).toBe(250);
-  });
-
   it('reduceSensorList only sets api presence, not active', () => {
     const s = reduceSensorList(
       [
@@ -260,7 +249,6 @@ describe('availability reducer', () => {
     expect(s.sensors.accelerometer.status).toBe('unknown');
     expect(s.sensors.accelerometer.apiPresent).toBe(true);
     expect(s.sensors.gyroscope.status).toBe('api-missing');
-    expect(hasAnySensor(s)).toBe(false);
     expect(sensorSummary(s)).toBe('pending');
   });
 
@@ -276,7 +264,6 @@ describe('availability reducer', () => {
     }
     s = availabilityReducer(s, { type: 'tick', nowMs: 0 });
     s = availabilityReducer(s, { type: 'tick', nowMs: 100 });
-    expect(hasAnySensor(s)).toBe(false);
     expect(sensorSummary(s)).toBe('none-detected');
   });
 
@@ -290,7 +277,6 @@ describe('availability reducer', () => {
       timestampMs: 10,
       hasValue: true,
     });
-    expect(hasAnySensor(s)).toBe(true);
     expect(sensorSummary(s)).toBe('some-active');
   });
 
