@@ -12,6 +12,12 @@ export interface BatteryReading {
   dischargingTime: number; // seconds; Infinity when unknown
 }
 
+export interface DurationParts {
+  hours: number;
+  minutes: number;
+  seconds: number;
+}
+
 export type BatteryPhase =
   | 'unsupported'
   | 'initializing'
@@ -25,20 +31,6 @@ export type BatteryEvent =
   | { type: 'chargingchange'; charging: boolean }
   | { type: 'complete' };
 
-export function clampLevel(level: number): number {
-  if (level < 0) return 0;
-  if (level > 1) return 1;
-  return level;
-}
-
-export function levelToPercent(level: number): number {
-  return Math.round(clampLevel(level) * 100);
-}
-
-export function isBatterySupported(hasGetBattery: boolean): boolean {
-  return hasGetBattery;
-}
-
 export function pruneSamples(
   samples: readonly BatterySample[],
   now: number,
@@ -48,9 +40,13 @@ export function pruneSamples(
   return samples.filter((s) => s.timestamp >= cutoff);
 }
 
-// Least-squares slope of level over time (level fraction per second).
+// Rate estimation needs >= 2 distinct level values in the window; a single
+// quantized 1% step is not enough to derive a meaningful slope.
 export function computeRatePerSecond(samples: readonly BatterySample[]): number | null {
   if (samples.length < 2) return null;
+  const distinctLevels = new Set(samples.map((s) => s.level));
+  if (distinctLevels.size < 2) return null;
+
   const n = samples.length;
   let sumT = 0;
   let sumL = 0;
@@ -58,7 +54,7 @@ export function computeRatePerSecond(samples: readonly BatterySample[]): number 
   let sumTL = 0;
   for (const s of samples) {
     const t = s.timestamp / 1000;
-    const l = clampLevel(s.level);
+    const l = s.level;
     sumT += t;
     sumL += l;
     sumTT += t * t;
@@ -76,7 +72,7 @@ export function estimateTimeToEmpty(
   ratePerSecond: number,
 ): number | null {
   if (ratePerSecond >= 0) return null;
-  const seconds = clampLevel(currentLevel) / -ratePerSecond;
+  const seconds = currentLevel / -ratePerSecond;
   if (seconds < 0) return null;
   return seconds;
 }
@@ -86,7 +82,7 @@ export function estimateTimeToFull(
   ratePerSecond: number,
 ): number | null {
   if (ratePerSecond <= 0) return null;
-  const seconds = (1 - clampLevel(currentLevel)) / ratePerSecond;
+  const seconds = (1 - currentLevel) / ratePerSecond;
   if (seconds < 0) return null;
   return seconds;
 }
@@ -100,24 +96,20 @@ export function estimateEtaSeconds(
   return estimateTimeToEmpty(reading.level, ratePerSecond);
 }
 
-export function formatDurationSeconds(seconds: number | null): string {
-  if (seconds === null) return 'unknown';
-  if (!Number.isFinite(seconds) || seconds < 0) return 'unknown';
+// Returns structured parts so the UI can localize. null when unknown.
+export function durationParts(seconds: number | null): DurationParts | null {
+  if (seconds === null) return null;
+  if (!Number.isFinite(seconds) || seconds < 0) return null;
   const total = Math.round(seconds);
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
+  return {
+    hours: Math.floor(total / 3600),
+    minutes: Math.floor((total % 3600) / 60),
+    seconds: total % 60,
+  };
 }
 
-// chargingTime/dischargeTime quirk: Infinity means "unknown".
-export function normalizeChargingTime(value: number): number {
-  if (value === Infinity || value < 0) return Infinity;
-  return value;
-}
-
+// 'complete' is produced by an explicit user confirmation (Pass) after the
+// battery reading has been verified against the machine.
 export function reduceBatteryPhase(phase: BatteryPhase, event: BatteryEvent): BatteryPhase {
   switch (event.type) {
     case 'unsupported':
@@ -131,8 +123,11 @@ export function reduceBatteryPhase(phase: BatteryPhase, event: BatteryEvent): Ba
       return 'complete';
     default: {
       const _exhaustive: never = event;
-      void _exhaustive;
-      return phase;
+      throw new Error(`unhandled battery event: ${JSON.stringify(_exhaustive)}`);
     }
   }
+}
+
+export function levelToPercent(level: number): number {
+  return Math.round(level * 100);
 }

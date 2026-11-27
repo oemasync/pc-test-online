@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   parseUserAgent,
-  normalizeGpuRenderer,
-  normalizeGpuVendor,
+  isWindows11,
+  parseGpu,
   formatBytes,
   physicalPixelCount,
   reduceSystemPhase,
@@ -26,32 +26,70 @@ describe('system logic', () => {
     expect(parsed.architecture).toBe('x64');
   });
 
-  it('normalizes ANGLE renderer string', () => {
-    const raw = 'ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0)';
-    expect(normalizeGpuRenderer(raw)).toBe('NVIDIA GeForce RTX 3060');
+  it('macOS architecture is unknown (Apple Silicon ambiguity)', () => {
+    const ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    const parsed = parseUserAgent(ua);
+    expect(parsed.os).toBe('macOS');
+    expect(parsed.architecture).toBe('unknown');
   });
 
-  it('normalizes ANGLE vendor string', () => {
-    const raw = 'ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0)';
-    expect(normalizeGpuVendor(raw)).toBe('NVIDIA');
+  it('iPadOS 13+ with maxTouchPoints > 1', () => {
+    const ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15';
+    const parsed = parseUserAgent(ua, 5);
+    expect(parsed.os).toBe('iPadOS');
   });
 
-  it('passes through non-ANGLE strings', () => {
-    expect(normalizeGpuRenderer('Apple GPU')).toBe('Apple GPU');
+  it('detects CriOS/FxiOS/EdgiOS', () => {
+    expect(parseUserAgent('... CriOS/120.0 ...').browser).toBe('Chrome');
+    expect(parseUserAgent('... FxiOS/120.0 ...').browser).toBe('Firefox');
+    expect(parseUserAgent('... EdgiOS/120.0 ...').browser).toBe('Edge');
   });
 
-  it('formats bytes', () => {
+  it('isWindows11 from platformVersion', () => {
+    expect(isWindows11('Windows', '13.0.0')).toBe(true);
+    expect(isWindows11('Windows', '10.0.0')).toBe(false);
+    expect(isWindows11('macOS', '13.0.0')).toBe(false);
+  });
+
+  it('parses ANGLE GPU strings', () => {
+    expect(parseGpu('ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0, D3D11)')).toEqual({
+      vendor: 'NVIDIA',
+      renderer: 'NVIDIA GeForce RTX 3060',
+    });
+    expect(parseGpu('ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)')).toEqual({
+      vendor: 'Intel',
+      renderer: 'Intel(R) UHD Graphics 620',
+    });
+    expect(parseGpu('ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)')).toEqual({
+      vendor: 'Apple',
+      renderer: 'Apple M2',
+    });
+    expect(parseGpu('ANGLE (NVIDIA Corporation, NVIDIA GeForce GTX 1080/PCIe/SSE2, OpenGL 4.5.0 NVIDIA 535.54)')).toEqual({
+      vendor: 'NVIDIA Corporation',
+      renderer: 'NVIDIA GeForce GTX 1080',
+    });
+  });
+
+  it('handles Firefox sanitized and plain GPU strings', () => {
+    expect(parseGpu('NVIDIA GeForce GTX 980, or similar')).toEqual({
+      vendor: 'unknown',
+      renderer: 'NVIDIA GeForce GTX 980, or similar',
+    });
+    expect(parseGpu('Mali-G78')).toEqual({ vendor: 'unknown', renderer: 'Mali-G78' });
+  });
+
+  it('formats bytes base 1000', () => {
     expect(formatBytes(0)).toBe('0 B');
-    expect(formatBytes(1024)).toBe('1.00 KB');
-    expect(formatBytes(1536)).toBe('1.50 KB');
-    expect(formatBytes(1048576)).toBe('1.00 MB');
+    expect(formatBytes(1000)).toBe('1.00 KB');
+    expect(formatBytes(1500)).toBe('1.50 KB');
+    expect(formatBytes(1000000)).toBe('1.00 MB');
   });
 
   it('computes physical pixels', () => {
     expect(physicalPixelCount(1920, 1080, 2)).toBe(1920 * 2 * 1080 * 2);
   });
 
-  it('reduces system phase', () => {
+  it('reduces system phase and throws on unknown', () => {
     expect(reduceSystemPhase('idle', { type: 'start' })).toBe('collecting');
     expect(reduceSystemPhase('collecting', { type: 'success' })).toBe('ready');
     expect(reduceSystemPhase('collecting', { type: 'failure' })).toBe('error');

@@ -22,16 +22,22 @@ anywhere; all reads are local.
 
 ## Browser-support caveats
 - `userAgentData` is Chromium-only; fall back to UA string parsing elsewhere.
-- `deviceMemory` is Chromium-only and rounded.
+- `deviceMemory` is Chromium-only, rounded, and commonly capped at 8 GB, so a reported `8` means `>= 8`; display it that way.
 - WebGL debug renderer info may be disabled/blocked; treat missing as unknown.
 - WebGPU is not universally available; feature-detect `navigator.gpu`.
 - `navigator.connection` is Chromium/Android only.
 - `storage.estimate()` may be unavailable or reject; handle gracefully.
 
+## UA fallback realism
+- macOS UAs always say 'Intel Mac OS X', even on Apple Silicon, so architecture from a Mac UA is 'unknown'.
+- iPadOS 13+ reports a Mac UA; use `maxTouchPoints > 1` to detect it.
+- Chrome's reduced UA freezes 'Windows NT 10.0' for Windows 11, so the OS version must come from `userAgentData.platformVersion` (>= 13 means Windows 11), not the UA.
+- Detect CriOS/FxiOS/EdgiOS as Chrome/Firefox/Edge on iOS.
+
 ## UX flow
 1. On mount, collect all available fields (each guarded by feature detection).
-2. Normalize GPU renderer strings (strip ANGLE wrapper).
-3. Format byte sizes for storage.
+2. Normalize GPU renderer strings (strip ANGLE wrapper, device ids, API tokens).
+3. Format byte sizes for storage (base 1000, KB/MB/GB).
 4. User confirms specs match reality, then Pass or Fail.
 
 ## Pass/Fail
@@ -49,4 +55,9 @@ anywhere; all reads are local.
 - `storageUsageBytes`, `storageQuotaBytes` (number)
 - `connectionEffectiveType`, `connectionDownlinkMbps`, `connectionRttMs`, `connectionSaveData` (best effort)
 - `languages` (string), `timeZone` (string)
-" content">
+
+## Logic notes
+- `parseGpu(raw)` returns `{ vendor, renderer }`.
+- `formatBytes` uses base 1000 with KB/MB/GB labels.
+- `physicalPixelCount` uses raw `devicePixelRatio` (no padding).
+- `reduceSystemPhase` is exhaustive; unknown events throw.
