@@ -1,5 +1,8 @@
 <template>
-  <div class="mouse-drag">
+  <div
+    class="mouse-drag"
+    aria-live="polite"
+  >
     <div
       class="mouse-drag__box"
       :class="{ 'mouse-drag__box--dragging': dragging }"

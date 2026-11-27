@@ -1,5 +1,8 @@
 <template>
-  <div class="mouse-polling">
+  <div
+    class="mouse-polling"
+    aria-live="polite"
+  >
     <p>
       {{ t('tests.mouse.pollingRate') }}:
       <span data-testid="polling-rate">{{ medianHz ?? '-' }}</span> Hz

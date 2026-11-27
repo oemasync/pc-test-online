@@ -1,5 +1,8 @@
 <template>
-  <div class="mouse-buttons">
+  <div
+    class="mouse-buttons"
+    aria-live="polite"
+  >
     <div class="mouse-buttons__tiles">
       <div
         v-for="(name, i) in buttonNames"

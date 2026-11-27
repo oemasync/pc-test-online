@@ -12,7 +12,6 @@
       ref="area"
       class="mouse-test"
       tabindex="0"
-      aria-live="polite"
     >
       <MouseButtons
         :pressed="buttonState.pressed"
@@ -109,6 +108,7 @@ const backForwardSkipped = ref(false)
 const chatterAcknowledged = ref(false)
 
 let rafId: number | null = null
+let mountedEl: HTMLElement | null = null
 
 const pollingEstimate = computed(() => estimatePollingRate(pollingTimestamps.value))
 
@@ -243,28 +243,6 @@ function onPointerMove(e: PointerEvent): void {
 function onKeyDown(e: KeyboardEvent): void {
   if (e.code === 'Space' || e.code === 'Enter') {
     e.preventDefault()
-    buttonState.value = buttonReducer(buttonState.value, {
-      type: 'mousedown',
-      button: 0,
-    })
-    buttonState.value = buttonReducer(buttonState.value, {
-      type: 'mouseup',
-      button: 0,
-    })
-    wheelDirections.value = new Set([...wheelDirections.value, 'up'])
-    wheelDirection.value = 'up'
-  } else if (e.code === 'ArrowUp') {
-    wheelDirection.value = 'up'
-    wheelDirections.value = new Set([...wheelDirections.value, 'up'])
-  } else if (e.code === 'ArrowDown') {
-    wheelDirection.value = 'down'
-    wheelDirections.value = new Set([...wheelDirections.value, 'down'])
-  } else if (e.code === 'ArrowLeft') {
-    wheelDirection.value = 'left'
-    wheelDirections.value = new Set([...wheelDirections.value, 'left'])
-  } else if (e.code === 'ArrowRight') {
-    wheelDirection.value = 'right'
-    wheelDirections.value = new Set([...wheelDirections.value, 'right'])
   }
 }
 
@@ -286,15 +264,17 @@ onMounted(() => {
   for (const [type, handler] of listeners) {
     el.addEventListener(type, handler)
   }
+  mountedEl = el
 })
 
 onUnmounted(() => {
-  const el = area.value
+  const el = mountedEl
   if (el) {
     for (const [type, handler] of listeners) {
       el.removeEventListener(type, handler)
     }
   }
+  mountedEl = null
   if (rafId !== null) {
     cancelAnimationFrame(rafId)
     rafId = null

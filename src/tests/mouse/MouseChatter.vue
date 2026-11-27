@@ -1,5 +1,8 @@
 <template>
-  <div class="mouse-chatter">
+  <div
+    class="mouse-chatter"
+    aria-live="polite"
+  >
     <p>
       {{ t('tests.mouse.chatterCount') }}:
       <span data-testid="chatter-count">{{ count }}</span>

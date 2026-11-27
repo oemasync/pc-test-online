@@ -1,5 +1,8 @@
 <template>
-  <div class="mouse-wheel">
+  <div
+    class="mouse-wheel"
+    aria-live="polite"
+  >
     <div class="mouse-wheel__tiles">
       <div
         v-for="dir in directions"

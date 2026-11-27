@@ -47,11 +47,10 @@ test('mouse module', async ({ page }) => {
 
   // rapid move for polling
   const areaBox = await area.boundingBox()
+  expect(areaBox).not.toBeNull()
   const samplesBefore = Number(await page.getByTestId('polling-samples').innerText())
-  if (areaBox) {
-    for (let i = 0; i < 20; i += 1) {
-      await page.mouse.move(areaBox.x + 10 + i * 3, areaBox.y + 10 + i * 3)
-    }
+  for (let i = 0; i < 20; i += 1) {
+    await page.mouse.move(areaBox!.x + 10 + i * 3, areaBox!.y + 10 + i * 3)
   }
   await expect.poll(async () => Number(await page.getByTestId('polling-samples').innerText())).toBeGreaterThan(samplesBefore)
 
