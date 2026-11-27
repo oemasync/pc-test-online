@@ -10,56 +10,31 @@ export interface PeakHoldState {
   readonly peakAt: number;
 }
 
-export interface PeakHoldOptions {
-  readonly holdMs?: number;
-  readonly decayDbPerSecond?: number;
+export interface SilenceSample {
+  readonly t: number;
+  readonly rms: number;
 }
-
-export type RmsInput =
-  | Float32Array
-  | Float64Array
-  | Uint8Array
-  | Uint8ClampedArray
-  | readonly number[];
 
 const DEFAULT_CLIP_THRESHOLD = 0.99;
 const DEFAULT_SILENCE_THRESHOLD = 1e-6;
 const DEFAULT_PEAK_HOLD_MS = 1000;
 const DEFAULT_PEAK_DECAY_DB_PER_SECOND = 20;
-
-function toFloatSamples(input: RmsInput): number[] {
-  if (input instanceof Uint8Array || input instanceof Uint8ClampedArray) {
-    const result: number[] = [];
-    for (let i = 0; i < input.length; i += 1) {
-      result.push(((input[i] as number) - 128) / 128);
-    }
-    return result;
-  }
-  const result: number[] = [];
-  for (let i = 0; i < input.length; i += 1) {
-    result.push(input[i] as number);
-  }
-  return result;
-}
+const NOISE_FLOOR_PERCENTILE = 0.1;
 
 /**
  * Compute the root-mean-square of a block of time-domain samples.
  *
- * Byte arrays (Uint8Array / Uint8ClampedArray) are interpreted as unsigned
- * 8-bit PCM centred at 128, matching AnalyserNode byte time-domain data.
- * Float arrays are interpreted as signed amplitudes in [-1, 1].
+ * Samples are signed amplitudes in [-1, 1], as returned by
+ * AnalyserNode.getFloatTimeDomainData.
  */
-export function computeRms(input: RmsInput): number {
-  const samples = toFloatSamples(input);
+export function computeRms(samples: Float32Array): number {
   if (samples.length === 0) {
     return 0;
   }
 
   let sumSquares = 0;
-  for (const sample of samples) {
-    if (!Number.isFinite(sample)) {
-      return 0;
-    }
+  for (let i = 0; i < samples.length; i += 1) {
+    const sample = samples[i] as number;
     sumSquares += sample * sample;
   }
   return Math.sqrt(sumSquares / samples.length);
@@ -71,7 +46,7 @@ export function computeRms(input: RmsInput): number {
  * Returns -Infinity for an RMS of zero or below.
  */
 export function rmsToDbfs(rms: number): number {
-  if (!Number.isFinite(rms) || rms <= 0) {
+  if (rms <= 0) {
     return Number.NEGATIVE_INFINITY;
   }
   return 20 * Math.log10(rms);
@@ -98,29 +73,17 @@ export function peakHoldReducer(
   holdMs: number = DEFAULT_PEAK_HOLD_MS,
   decayDbPerSecond: number = DEFAULT_PEAK_DECAY_DB_PER_SECOND,
 ): PeakHoldState {
-  if (!Number.isFinite(levelDb)) {
-    return state;
-  }
-  if (!Number.isFinite(nowMs)) {
-    return state;
-  }
-  const safeHoldMs = Number.isFinite(holdMs) && holdMs >= 0 ? holdMs : 0;
-  const safeDecay =
-    Number.isFinite(decayDbPerSecond) && decayDbPerSecond >= 0
-      ? decayDbPerSecond
-      : 0;
-
-  if (!Number.isFinite(state.peak) || levelDb >= state.peak) {
+  if (levelDb >= state.peak) {
     return { peak: levelDb, peakAt: nowMs };
   }
 
   const elapsed = nowMs - state.peakAt;
-  if (elapsed <= safeHoldMs) {
+  if (elapsed <= holdMs) {
     return state;
   }
 
   const decayed =
-    state.peak - (safeDecay * (elapsed - safeHoldMs)) / 1000;
+    state.peak - (decayDbPerSecond * (elapsed - holdMs)) / 1000;
   const newPeak = Math.max(decayed, levelDb);
 
   if (newPeak <= levelDb) {
@@ -130,33 +93,16 @@ export function peakHoldReducer(
 }
 
 /**
- * Report whether a single sample is clipping.
- */
-export function isClipping(
-  sample: number,
-  threshold: number = DEFAULT_CLIP_THRESHOLD,
-): boolean {
-  if (!Number.isFinite(sample)) {
-    return false;
-  }
-  const safeThreshold =
-    Number.isFinite(threshold) && threshold > 0 ? threshold : DEFAULT_CLIP_THRESHOLD;
-  return Math.abs(sample) >= safeThreshold;
-}
-
-/**
  * Count the clipped samples in a block.
  */
 export function countClipped(
-  input: RmsInput,
+  samples: Float32Array,
   threshold: number = DEFAULT_CLIP_THRESHOLD,
 ): number {
-  const samples = toFloatSamples(input);
-  const safeThreshold =
-    Number.isFinite(threshold) && threshold > 0 ? threshold : DEFAULT_CLIP_THRESHOLD;
   let count = 0;
-  for (const sample of samples) {
-    if (Number.isFinite(sample) && Math.abs(sample) >= safeThreshold) {
+  for (let i = 0; i < samples.length; i += 1) {
+    const sample = samples[i] as number;
+    if (Math.abs(sample) >= threshold) {
       count += 1;
     }
   }
@@ -164,80 +110,65 @@ export function countClipped(
 }
 
 /**
- * Estimate the noise floor (RMS) from samples collected over a quiet window.
- *
- * Uses the minimum RMS observed, which is the standard quiet-window estimator.
+ * Estimate the noise floor (RMS) from RMS values collected over a quiet
+ * window. Uses a low percentile so a single near-zero outlier cannot decide
+ * the estimate.
  */
-export function estimateNoiseFloor(samples: readonly number[]): number {
-  if (!Array.isArray(samples) && !ArrayBuffer.isView(samples)) {
-    return 0;
-  }
+export function estimateNoiseFloor(samples: Float32Array): number {
   if (samples.length === 0) {
     return 0;
   }
 
-  let min = Number.POSITIVE_INFINITY;
-  for (const value of samples) {
-    if (!Number.isFinite(value)) {
-      continue;
-    }
-    if (value < min) {
-      min = value;
-    }
-  }
-  return Number.isFinite(min) ? min : 0;
+  const sorted = Array.from(samples).sort((a, b) => a - b);
+  const drop = Math.max(1, Math.floor(sorted.length * NOISE_FLOOR_PERCENTILE));
+  const index = Math.min(drop, sorted.length - 1);
+  return sorted[index] as number;
 }
 
 /**
- * Estimate the noise floor in dBFS from RMS samples.
- */
-export function estimateNoiseFloorDbfs(samples: readonly number[]): number {
-  return rmsToDbfs(estimateNoiseFloor(samples));
-}
-
-/**
- * Detect a sustained silence: the trailing `minConsecutive` RMS values must
- * all be at or below `threshold`.
+ * Detect a sustained silence: the trailing run of samples with RMS at or
+ * below `thresholdRms` must span at least `durationMs` milliseconds.
  */
 export function detectSilence(
-  rmsValues: readonly number[],
-  threshold: number = DEFAULT_SILENCE_THRESHOLD,
-  minConsecutive: number = 1,
+  history: readonly SilenceSample[],
+  thresholdRms: number,
+  durationMs: number,
 ): boolean {
-  if (rmsValues.length === 0) {
+  if (history.length === 0) {
     return false;
   }
-  const required =
-    Number.isInteger(minConsecutive) && minConsecutive > 0 ? minConsecutive : 1;
-  if (rmsValues.length < required) {
-    return false;
-  }
-  const safeThreshold =
-    Number.isFinite(threshold) && threshold >= 0 ? threshold : 0;
 
-  let consecutive = 0;
-  for (let i = rmsValues.length - 1; i >= 0; i -= 1) {
-    const value = rmsValues[i] as number;
-    if (Number.isFinite(value) && value <= safeThreshold) {
-      consecutive += 1;
-    } else {
+  const lastIndex = history.length - 1;
+  if ((history[lastIndex] as SilenceSample).rms > thresholdRms) {
+    return false;
+  }
+
+  let firstIndex = lastIndex;
+  while (firstIndex > 0) {
+    const prev = history[firstIndex - 1] as SilenceSample;
+    if (prev.rms > thresholdRms) {
       break;
     }
+    firstIndex -= 1;
   }
-  return consecutive >= required;
+
+  const span =
+    (history[lastIndex] as SilenceSample).t -
+    (history[firstIndex] as SilenceSample).t;
+  return span >= durationMs;
 }
 
 /**
  * Frequency of each FFT bin centre in hertz.
+ *
+ * The bin width is `sampleRate / fftSize`; `binCount` is typically
+ * `fftSize / 2`.
  */
 export function frequencyBinCentres(
   binCount: number,
   sampleRate: number,
 ): number[] {
-  if (!Number.isFinite(binCount) || binCount <= 0) {
-    return [];
-  }
-  if (!Number.isFinite(sampleRate) || sampleRate <= 0) {
+  if (binCount <= 0 || sampleRate <= 0) {
     return [];
   }
   const result: number[] = [];
@@ -251,7 +182,7 @@ export function frequencyBinCentres(
 /**
  * Index of the bin with the largest magnitude.
  */
-export function peakBinIndex(magnitudes: readonly number[]): number {
+export function peakBinIndex(magnitudes: Float32Array): number {
   if (magnitudes.length === 0) {
     return -1;
   }
@@ -259,7 +190,7 @@ export function peakBinIndex(magnitudes: readonly number[]): number {
   let bestValue = magnitudes[0] as number;
   for (let i = 1; i < magnitudes.length; i += 1) {
     const value = magnitudes[i] as number;
-    if (Number.isFinite(value) && value > bestValue) {
+    if (value > bestValue) {
       bestValue = value;
       bestIndex = i;
     }

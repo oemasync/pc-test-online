@@ -77,3 +77,10 @@ switches input devices, and exposes the applied audio-processing constraints.
 - `groupId`: string
 - `mimeType`: string
 - `recorded`: boolean
+
+## Implementation notes
+
+- Level meter samples come from `AnalyserNode.getFloatTimeDomainData` into a
+  `Float32Array`; `computeRms` operates on that buffer.
+- The frequency spectrum uses `AnalyserNode.getByteFrequencyData` (or float).
+  FFT bin width is `sampleRate / fftSize`; `frequencyBinCentres` uses that.
