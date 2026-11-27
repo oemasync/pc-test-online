@@ -21,27 +21,27 @@
     <dl class="refresh-panel__list">
       <div>
         <dt>{{ t('tests.display.refresh.estimatedHz') }}</dt>
-        <dd>{{ estimate?.estimatedHz?.toFixed(2) ?? '—' }}</dd>
+        <dd aria-live="polite">{{ estimate?.estimatedHz?.toFixed(2) ?? '—' }}</dd>
       </div>
       <div>
         <dt>{{ t('tests.display.refresh.nearestStandard') }}</dt>
-        <dd>{{ estimate?.nearestStandardHz ?? '—' }}</dd>
+        <dd aria-live="polite">{{ estimate?.nearestStandardHz ?? '—' }}</dd>
       </div>
       <div>
         <dt>{{ t('tests.display.refresh.medianInterval') }}</dt>
-        <dd>{{ estimate?.medianIntervalMs?.toFixed(2) ?? '—' }} ms</dd>
+        <dd aria-live="polite">{{ estimate?.medianIntervalMs?.toFixed(2) ?? '—' }} ms</dd>
       </div>
       <div>
         <dt>{{ t('tests.display.refresh.samples') }}</dt>
-        <dd>{{ estimate?.sampleCount ?? 0 }}</dd>
+        <dd aria-live="polite">{{ estimate?.sampleCount ?? 0 }}</dd>
       </div>
       <div>
         <dt>{{ t('tests.display.refresh.rejected') }}</dt>
-        <dd>{{ estimate?.rejectedCount ?? 0 }}</dd>
+        <dd aria-live="polite">{{ estimate?.rejectedCount ?? 0 }}</dd>
       </div>
       <div>
         <dt>{{ t('tests.display.refresh.jitter') }}</dt>
-        <dd>{{ jitter?.standardDeviationMs?.toFixed(2) ?? '—' }} ms</dd>
+        <dd aria-live="polite">{{ jitter?.standardDeviationMs?.toFixed(2) ?? '—' }} ms</dd>
       </div>
     </dl>
   </section>
@@ -128,7 +128,7 @@ onUnmounted(() => {
 <style scoped>
 .refresh-panel__hint {
     font-size: 0.875rem;
-    color: var(--text-secondary, #6b7280);
+    color: var(--text-secondary);
 }
 
 .refresh-panel__actions {
@@ -154,7 +154,7 @@ onUnmounted(() => {
 }
 
 .refresh-panel__list dt {
-    color: var(--text-secondary, #6b7280);
+    color: var(--text-secondary);
 }
 
 .refresh-panel__list dd {

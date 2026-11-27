@@ -40,6 +40,7 @@ import SharpnessPanel from './SharpnessPanel.vue';
 import RefreshRatePanel from './RefreshRatePanel.vue';
 import CapabilityPanel from './CapabilityPanel.vue';
 import {
+    DISPLAY_COLORS,
     buildDisplayDetails,
     displayCapabilityFromMediaQueries,
     normalizeDevicePixelRatio,
@@ -60,6 +61,7 @@ const capability = ref<DisplayCapability | null>(null);
 
 const canPass = computed(
     () =>
+        capability.value !== null &&
         defectColors.value.length === 0 &&
         !gradientBanding.value &&
         !backlightBleed.value &&
@@ -68,7 +70,7 @@ const canPass = computed(
 
 const details = computed(() =>
     buildDisplayDetails({
-        colorsTested: 6,
+        colorsTested: DISPLAY_COLORS.length,
         defectsFound:
             defectColors.value.length +
             (gradientBanding.value ? 1 : 0) +

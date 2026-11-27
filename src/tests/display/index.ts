@@ -7,6 +7,7 @@ const module: TestModule = {
     titleKey: 'tests.display.title',
     descriptionKey: 'tests.display.description',
     component: () => import('./DisplayTest.vue'),
+    isSupported: () => typeof window !== 'undefined' && typeof requestAnimationFrame === 'function',
 };
 
 export default module;

@@ -5,7 +5,7 @@ import PixelCyclePanel from '../PixelCyclePanel.vue'
 import RefreshRatePanel from '../RefreshRatePanel.vue'
 
 describe('PixelCyclePanel', () => {
-  it('cycles colors with the keyboard', async () => {
+  it('cycles colors with a click', async () => {
     const wrapper = mountWithPlugins(PixelCyclePanel)
     await wrapper.find('.pixel-cycle__stage').trigger('click')
     expect(wrapper.text()).toContain('white')

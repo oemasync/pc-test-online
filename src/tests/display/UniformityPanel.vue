@@ -56,7 +56,7 @@ watch(bleed, value => emit('update:bleed', value));
 .uniformity-panel__stage {
     height: 8rem;
     margin: 0.5rem 0;
-    border: 1px solid var(--border, #e5e7eb);
+    border: 1px solid var(--border);
     border-radius: 0.5rem;
     background: #111;
 }

@@ -78,7 +78,7 @@ watch(defect, value => emit('update:defect', value));
 .sharpness-panel__canvas {
     display: block;
     max-width: 100%;
-    border: 1px solid var(--border, #e5e7eb);
+    border: 1px solid var(--border);
     border-radius: 0.5rem;
     margin: 0.5rem 0;
 }

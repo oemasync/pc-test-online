@@ -39,7 +39,7 @@ watch(banding, value => emit('update:banding', value));
 
 .gradient-panel__sample {
     height: 6rem;
-    border: 1px solid var(--border, #e5e7eb);
+    border: 1px solid var(--border);
     border-radius: 0.5rem;
 }
 

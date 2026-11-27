@@ -119,7 +119,7 @@ onUnmounted(() => {
 .pixel-cycle__stage {
     position: relative;
     min-height: 12rem;
-    border: 1px solid var(--border, #e5e7eb);
+    border: 1px solid var(--border);
     border-radius: 0.5rem;
     cursor: pointer;
     display: flex;

@@ -4,11 +4,11 @@
     <dl class="capability-panel__list">
       <div>
         <dt>{{ t('tests.display.capability.dynamicRange') }}</dt>
-        <dd>{{ dynamicRangeLabel }}</dd>
+        <dd aria-live="polite">{{ dynamicRangeLabel }}</dd>
       </div>
       <div>
         <dt>{{ t('tests.display.capability.colorGamut') }}</dt>
-        <dd>{{ colorGamutLabel }}</dd>
+        <dd aria-live="polite">{{ colorGamutLabel }}</dd>
       </div>
     </dl>
   </section>
@@ -64,7 +64,7 @@ defineExpose({ capability });
 }
 
 .capability-panel__list dt {
-    color: var(--text-secondary, #6b7280);
+    color: var(--text-secondary);
 }
 
 .capability-panel__list dd {

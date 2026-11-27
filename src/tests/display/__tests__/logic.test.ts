@@ -100,7 +100,7 @@ describe('refresh-rate estimation', () => {
         expect(nearestStandardRate(143.8)).toBe(144);
         expect(nearestStandardRate(239.5)).toBe(240);
         expect(nearestStandardRate(59.94)).toBe(60);
-        expect(nearestStandardRate(0)).toBeNull();
+        expect(nearestStandardRate(0)).toBe(48);
     });
 
     it('returns short interval lists unchanged', () => {

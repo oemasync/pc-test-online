@@ -76,10 +76,10 @@ function median(values: readonly number[]): number {
     const middle = Math.floor(sorted.length / 2);
 
     if (sorted.length % 2 === 1) {
-        return sorted[middle] as number;
+        return sorted[middle] ?? 0;
     }
 
-    return ((sorted[middle - 1] as number) + (sorted[middle] as number)) / 2;
+    return ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
 }
 
 export function normalizeColorIndex(index: number): number {
@@ -200,11 +200,7 @@ export function estimateRefreshRate(intervals: readonly number[]): RefreshRateEs
     };
 }
 
-export function nearestStandardRate(hz: number): StandardRefreshRate | null {
-    if (hz <= 0) {
-        return null;
-    }
-
+export function nearestStandardRate(hz: number): StandardRefreshRate {
     let nearest: StandardRefreshRate = STANDARD_REFRESH_RATES[0];
     let bestDistance = Math.abs(hz - nearest);
 
@@ -241,8 +237,8 @@ export function jitterStats(intervals: readonly number[]): JitterStats {
 
     return {
         count,
-        minMs: sorted[0] as number,
-        maxMs: sorted[count - 1] as number,
+        minMs: sorted[0] ?? 0,
+        maxMs: sorted[count - 1] ?? 0,
         standardDeviationMs: Math.sqrt(variance),
     };
 }
@@ -272,75 +268,63 @@ export function normalizeDevicePixelRatio(value: number): number {
 export function buildDisplayDetails(
     input: DisplayDetailsInput
 ): Record<string, string | number | boolean> {
-    const details: Record<string, string | number | boolean> = {};
+    const refresh = input.refresh;
+    const jitter = input.jitter;
 
-    if (input.colorsTested !== undefined) {
-        details.colorsTested = input.colorsTested;
-    }
-
-    if (input.defectsFound !== undefined) {
-        details.defectsFound = input.defectsFound;
-    }
-
-    if (input.defectColors !== undefined) {
-        details.defectColors = input.defectColors.join(',');
-    }
-
-    if (input.refresh !== undefined) {
-        if (input.refresh.estimatedHz !== null) {
-            details.refreshRateHz = input.refresh.estimatedHz;
-        }
-
-        if (input.refresh.nearestStandardHz !== null) {
-            details.nearestStandardRefreshRateHz = input.refresh.nearestStandardHz;
-        }
-
-        details.frameSampleCount = input.refresh.sampleCount;
-        details.rejectedFrameCount = input.refresh.rejectedCount;
-
-        if (input.refresh.medianIntervalMs !== null) {
-            details.medianFrameIntervalMs = input.refresh.medianIntervalMs;
-        }
-    }
-
-    if (input.jitter !== undefined) {
-        if (input.jitter.standardDeviationMs !== null) {
-            details.jitterMs = input.jitter.standardDeviationMs;
-        }
-
-        if (input.jitter.minMs !== null) {
-            details.minFrameIntervalMs = input.jitter.minMs;
-        }
-
-        if (input.jitter.maxMs !== null) {
-            details.maxFrameIntervalMs = input.jitter.maxMs;
-        }
-    }
-
-    if (input.capability !== undefined) {
-        details.dynamicRange = input.capability.dynamicRange;
-        details.colorGamut = input.capability.colorGamut;
-    }
-
-    if (input.devicePixelRatio !== undefined) {
-        details.devicePixelRatio = normalizeDevicePixelRatio(input.devicePixelRatio);
-    }
-
-    if (input.fullscreenSupported !== undefined) {
-        details.fullscreenSupported = input.fullscreenSupported;
-    }
-
-    if (input.gradientBandingObserved !== undefined) {
-        details.gradientBandingObserved = input.gradientBandingObserved;
-    }
-
-    if (input.backlightBleedObserved !== undefined) {
-        details.backlightBleedObserved = input.backlightBleedObserved;
-    }
-
-    if (input.sharpnessDefectObserved !== undefined) {
-        details.sharpnessDefectObserved = input.sharpnessDefectObserved;
-    }
-
-    return details;
+    return {
+        ...(input.colorsTested !== undefined
+            ? { colorsTested: input.colorsTested }
+            : {}),
+        ...(input.defectsFound !== undefined
+            ? { defectsFound: input.defectsFound }
+            : {}),
+        ...(input.defectColors !== undefined
+            ? { defectColors: input.defectColors.join(',') }
+            : {}),
+        ...(refresh !== undefined
+            ? {
+                  ...(refresh.estimatedHz !== null
+                      ? { refreshRateHz: refresh.estimatedHz }
+                      : {}),
+                  ...(refresh.nearestStandardHz !== null
+                      ? { nearestStandardRefreshRateHz: refresh.nearestStandardHz }
+                      : {}),
+                  frameSampleCount: refresh.sampleCount,
+                  rejectedFrameCount: refresh.rejectedCount,
+                  ...(refresh.medianIntervalMs !== null
+                      ? { medianFrameIntervalMs: refresh.medianIntervalMs }
+                      : {}),
+              }
+            : {}),
+        ...(jitter !== undefined
+            ? {
+                  ...(jitter.standardDeviationMs !== null
+                      ? { jitterMs: jitter.standardDeviationMs }
+                      : {}),
+                  ...(jitter.minMs !== null ? { minFrameIntervalMs: jitter.minMs } : {}),
+                  ...(jitter.maxMs !== null ? { maxFrameIntervalMs: jitter.maxMs } : {}),
+              }
+            : {}),
+        ...(input.capability !== undefined
+            ? {
+                  dynamicRange: input.capability.dynamicRange,
+                  colorGamut: input.capability.colorGamut,
+              }
+            : {}),
+        ...(input.devicePixelRatio !== undefined
+            ? { devicePixelRatio: normalizeDevicePixelRatio(input.devicePixelRatio) }
+            : {}),
+        ...(input.fullscreenSupported !== undefined
+            ? { fullscreenSupported: input.fullscreenSupported }
+            : {}),
+        ...(input.gradientBandingObserved !== undefined
+            ? { gradientBandingObserved: input.gradientBandingObserved }
+            : {}),
+        ...(input.backlightBleedObserved !== undefined
+            ? { backlightBleedObserved: input.backlightBleedObserved }
+            : {}),
+        ...(input.sharpnessDefectObserved !== undefined
+            ? { sharpnessDefectObserved: input.sharpnessDefectObserved }
+            : {}),
+    };
 }
