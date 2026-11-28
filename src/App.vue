@@ -118,6 +118,7 @@
       </aside>
 
       <main
+        ref="mainRef"
         id="main-content"
         tabindex="-1"
         class="app__main"
@@ -175,12 +176,17 @@ const { t, locale } = useI18n()
 const locales = ['en', 'es']
 const modules = getTestModules()
 const route = useRoute()
+const mainRef = ref<HTMLElement | null>(null)
 
 function focusPageHeading(): void {
-  const main = document.getElementById('main-content')
+  const main = mainRef.value
   const heading = (main?.querySelector('h1, h2, h3') ?? null) as HTMLElement | null
   const target = heading ?? main
-  if (!target) return
+  if (!target || !target.isConnected) {
+    window.setTimeout(focusPageHeading, 16)
+    return
+  }
+  target.tabIndex = -1
   if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1')
   target.focus()
 }
@@ -189,7 +195,14 @@ watch(
   () => route.fullPath,
   () => {
     void nextTick().then(() => {
-      window.setTimeout(focusPageHeading, 50)
+      const attempt = (remaining: number): void => {
+        if (mainRef.value || remaining <= 0) {
+          focusPageHeading()
+          return
+        }
+        window.setTimeout(() => attempt(remaining - 1), 16)
+      }
+      attempt(10)
     })
   },
   { immediate: true },
