@@ -42,6 +42,7 @@ const emit = defineEmits<{ (e: 'played'): void }>();
 const { t } = useI18n();
 const playing = ref<string>('');
 const oscs: OscillatorNode[] = [];
+let playTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function play(polarity: 'inPhase' | 'inverted'): Promise<void> {
     const ctx = await resumeAudioContext();
@@ -70,7 +71,8 @@ async function play(polarity: 'inPhase' | 'inverted'): Promise<void> {
     oscs.push(oL, oR);
     playing.value = polarity;
     emit('played');
-    setTimeout(() => {
+    if (playTimer) clearTimeout(playTimer);
+    playTimer = setTimeout(() => {
         playing.value = '';
     }, 650);
 }
@@ -92,6 +94,8 @@ function stop(): void {
 }
 
 onUnmounted(() => {
+    if (playTimer) clearTimeout(playTimer);
+    playTimer = null;
     stop();
 });
 </script>

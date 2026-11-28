@@ -27,6 +27,7 @@ const emit = defineEmits<{ (e: 'played'): void }>();
 const { t } = useI18n();
 const playing = ref(false);
 const oscs: OscillatorNode[] = [];
+let playTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function play(): Promise<void> {
     const ctx = await resumeAudioContext();
@@ -47,7 +48,8 @@ async function play(): Promise<void> {
     gain.connect(ctx.destination);
     playing.value = true;
     emit('played');
-    setTimeout(() => {
+    if (playTimer) clearTimeout(playTimer);
+    playTimer = setTimeout(() => {
         playing.value = false;
     }, 650);
 }
@@ -69,6 +71,8 @@ function stop(): void {
 }
 
 onUnmounted(() => {
+    if (playTimer) clearTimeout(playTimer);
+    playTimer = null;
     stop();
 });
 </script>
