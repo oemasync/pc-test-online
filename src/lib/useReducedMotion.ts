@@ -8,11 +8,20 @@ export function useReducedMotion() {
     reduced.value = Boolean(mq?.matches)
   }
 
-  onMounted(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
+  // Initialize synchronously so consumers see the correct value on first render.
+  if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
     mq = window.matchMedia('(prefers-reduced-motion: reduce)')
     reduced.value = Boolean(mq?.matches)
-    mq?.addEventListener('change', update)
+  }
+
+  onMounted(() => {
+    if (mq) {
+      mq.addEventListener('change', update)
+    } else if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+      reduced.value = Boolean(mq?.matches)
+      mq.addEventListener('change', update)
+    }
   })
 
   onUnmounted(() => {
