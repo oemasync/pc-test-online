@@ -242,12 +242,12 @@ function onKeyDown(e: KeyboardEvent): void {
   }
 }
 
-const listeners: Array<[string, EventListener]> = [
+const listeners: Array<[string, EventListener, AddEventListenerOptions?]> = [
   ['mousedown', onMouseDown as EventListener],
   ['mouseup', onMouseUp as EventListener],
   ['mousemove', onMouseMove as EventListener],
   ['click', onClick as EventListener],
-  ['wheel', onWheel as EventListener],
+  ['wheel', onWheel as EventListener, { passive: false }],
   ['contextmenu', onContextMenu as EventListener],
   ['auxclick', onAuxClick as EventListener],
   ['pointermove', onPointerMove as EventListener],
@@ -257,8 +257,8 @@ const listeners: Array<[string, EventListener]> = [
 onMounted(() => {
   const el = area.value
   if (!el) return
-  for (const [type, handler] of listeners) {
-    el.addEventListener(type, handler)
+  for (const [type, handler, options] of listeners) {
+    el.addEventListener(type, handler, options)
   }
   mountedEl = el
 })
