@@ -2,7 +2,6 @@
   <div
     class="app"
     :data-theme="theme"
-    :data-reduced-motion="reducedMotion"
   >
     <a
       class="skip-link"
@@ -71,12 +70,6 @@
                   :data-status="status(m.id)"
                 />
                 <span>{{ t(m.titleKey) }}</span>
-                <svg
-                  aria-hidden="true"
-                  focusable="false"
-                  height="24"
-                  width="1"
-                />
               </router-link>
             </template>
             <template v-else>
@@ -92,12 +85,6 @@
                 />
                 <span>{{ t(m.titleKey) }}</span>
                 <span class="app__unsupported">{{ t('buttons.unsupported') }}</span>
-                <svg
-                  aria-hidden="true"
-                  focusable="false"
-                  height="24"
-                  width="1"
-                />
               </button>
             </template>
           </li>
@@ -106,12 +93,6 @@
               to="/summary"
               class="app__test-link"
             >Summary
-              <svg
-                aria-hidden="true"
-                focusable="false"
-                height="24"
-                width="1"
-              />
             </router-link>
           </li>
         </ul>
@@ -133,11 +114,7 @@
           class="app__timer"
         >
           <span>{{ t(m.titleKey) }}</span>
-          <span
-            class="app__timer-value"
-            aria-live="polite"
-            aria-atomic="true"
-          >{{ formatElapsed(m.id) }}</span>
+          <span class="app__timer-value">{{ formatElapsed(m.id) }}</span>
         </div>
       </aside>
     </div>
@@ -183,11 +160,10 @@ function focusPageHeading(): void {
   const heading = (main?.querySelector('h1, h2, h3') ?? null) as HTMLElement | null
   const target = heading ?? main
   if (!target || !target.isConnected) {
-    window.setTimeout(focusPageHeading, 16)
     return
   }
-  target.tabIndex = -1
   if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1')
+  target.tabIndex = -1
   target.focus()
 }
 
@@ -196,20 +172,21 @@ watch(
   () => {
     void nextTick().then(() => {
       const attempt = (remaining: number): void => {
-        if (mainRef.value || remaining <= 0) {
-          focusPageHeading()
+        if (remaining <= 0) return
+        const main = mainRef.value
+        const heading = (main?.querySelector('h1, h2, h3') ?? null) as HTMLElement | null
+        if (!main || !heading) {
+          window.setTimeout(() => attempt(remaining - 1), 16)
           return
         }
-        window.setTimeout(() => attempt(remaining - 1), 16)
+        focusPageHeading()
       }
       attempt(10)
     })
   },
-  { immediate: true },
 )
 watch(locale, (value) => setLocale(value as 'en' | 'es'))
 const theme = ref<'light' | 'dark'>('light')
-const reducedMotion = ref(false)
 const tick = ref(0)
 
 let timer: ReturnType<typeof setInterval> | null = null
@@ -223,11 +200,6 @@ onMounted(() => {
     theme.value = 'dark'
   }
   applyTheme()
-  const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-  reducedMotion.value = mq.matches
-  mq.addEventListener('change', (e) => {
-    reducedMotion.value = e.matches
-  })
   timer = setInterval(() => {
     tick.value++
   }, 100)
@@ -282,6 +254,8 @@ function exportReport(): void {
   --color-success: #22c55e;
   --color-accent: #2563eb;
   --color-text-muted: #6b7280;
+  --overlay-bg: rgba(17, 24, 39, 0.85);
+  --overlay-text: #ffffff;
 }
 [data-theme='dark'] {
   --bg: #111827;
@@ -295,6 +269,8 @@ function exportReport(): void {
   --color-success: #4ade80;
   --color-accent: #60a5fa;
   --color-text-muted: #9ca3af;
+  --overlay-bg: rgba(0, 0, 0, 0.85);
+  --overlay-text: #ffffff;
 }
 .app {
   display: flex;
@@ -349,8 +325,23 @@ function exportReport(): void {
 .skip-link:hover {
   text-decoration: underline;
 }
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  padding: 0.5rem 1rem;
+  background: var(--bg);
+  color: var(--color-accent);
+  z-index: 100;
+  transition: top 0.15s ease;
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 0;
+}
 .app__test-link {
-  display: flex;
+  min-height: 24px;
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   text-decoration: none;
