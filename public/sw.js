@@ -1,6 +1,6 @@
 // Service worker for pc-test-online (hand-written, no dependencies).
-const PRECACHE_NAME = 'pc-test-online-precache-v7'
-const RUNTIME_NAME = 'pc-test-online-runtime-v7'
+const PRECACHE_NAME = 'pc-test-online-precache-__BUILD_VERSION__'
+const RUNTIME_NAME = 'pc-test-online-runtime-__BUILD_VERSION__'
 
 const PRECACHE_ASSETS = "__PRECACHE_MANIFEST__"
 
@@ -9,7 +9,6 @@ self.addEventListener('install', (event) => {
     (async () => {
       const cache = await caches.open(PRECACHE_NAME)
       await cache.addAll(PRECACHE_ASSETS)
-      await self.skipWaiting()
     })(),
   )
 })
@@ -58,8 +57,10 @@ self.addEventListener('fetch', (event) => {
       (async () => {
         try {
           const network = await fetch(request)
-          const cache = await caches.open(RUNTIME_NAME)
-          cache.put(request, network.clone())
+          if (network.ok) {
+            const cache = await caches.open(RUNTIME_NAME)
+            event.waitUntil(cache.put(request, network.clone()))
+          }
           return network
         } catch {
           const cached = await caches.match(request, { ignoreVary: true })
@@ -80,9 +81,9 @@ self.addEventListener('fetch', (event) => {
         const cached = await caches.match(request, { ignoreVary: true })
         if (cached) return cached
         const network = await fetch(request)
-        if (network && network.status === 200) {
+        if (network && network.ok) {
           const cache = await caches.open(RUNTIME_NAME)
-          cache.put(request, network.clone())
+          event.waitUntil(cache.put(request, network.clone()))
         }
         return network
       } catch {

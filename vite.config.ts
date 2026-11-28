@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import fs from 'node:fs'
 import path from 'node:path'
+import crypto from 'node:crypto'
 
 function precacheManifestPlugin() {
   let outDir = 'dist'
@@ -24,11 +25,20 @@ function precacheManifestPlugin() {
       }
       const files = walk(dist)
         .map((f) => '/' + path.relative(dist, f).split(path.sep).join('/'))
-        .filter((f) => f !== '/sw.js' && !f.endsWith('.map'))
+        .filter((f) => {
+          if (f === '/sw.js') return false
+          if (f.endsWith('.map')) return false
+          if (f.startsWith('/.vite/')) return false
+          return true
+        })
+        .sort()
+      const hash = crypto.createHash('sha256').update(files.join('\n')).digest('hex').slice(0, 8)
       const swPath = path.join(dist, 'sw.js')
-      const sw = fs.readFileSync(swPath, 'utf8')
-      fs.writeFileSync(swPath, sw.replace('"__PRECACHE_MANIFEST__"', JSON.stringify(files)))
-      console.log(`precache manifest: ${files.length} files`)
+      let sw = fs.readFileSync(swPath, 'utf8')
+      sw = sw.replace('"__PRECACHE_MANIFEST__"', JSON.stringify(files))
+      sw = sw.replace(/__BUILD_VERSION__/g, hash)
+      fs.writeFileSync(swPath, sw)
+      console.log(`precache manifest: ${files.length} files, build ${hash}`)
     },
   }
 }
@@ -56,6 +66,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    manifest: true,
     rollupOptions: {
       output: {
         manualChunks(id: string) {
