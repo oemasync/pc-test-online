@@ -118,10 +118,10 @@ onUnmounted(() => {
 }
 .keyboard__key--pressed {
   background: var(--color-warning);
-  color: var(--text);
+  color: var(--color-on-warning);
 }
 .keyboard__key--tested {
   background: var(--color-success);
-  color: var(--text);
+  color: var(--color-on-success);
 }
 </style>

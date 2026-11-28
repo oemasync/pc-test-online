@@ -76,7 +76,9 @@ function skipModule(id: string): void {
   align-items: stretch;
 }
 .overview__card {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   padding: var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -89,6 +91,10 @@ function skipModule(id: string): void {
 .overview__card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+.overview__card button {
+  align-self: flex-start;
+  margin-top: var(--space-2);
 }
 .overview__card--unsupported {
   opacity: 0.7;

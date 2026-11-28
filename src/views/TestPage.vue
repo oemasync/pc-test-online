@@ -72,6 +72,21 @@ function skipModule(): void {
 .test-nav {
   display: flex;
   justify-content: space-between;
-  margin-top: 1rem;
+  margin-top: var(--space-4);
+  gap: var(--space-2);
+}
+.test-nav a {
+  color: var(--color-accent);
+  text-decoration: none;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  transition: background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.test-nav a:hover {
+  background: var(--bg);
+  border-color: var(--color-accent);
 }
 </style>
