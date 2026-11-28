@@ -21,41 +21,55 @@
     <dl class="refresh-panel__list">
       <div>
         <dt>{{ t('tests.display.refresh.estimatedHz') }}</dt>
-        <dd aria-live="polite">
+        <dd>
           {{ estimate?.estimatedHz?.toFixed(2) ?? '—' }}
         </dd>
       </div>
       <div>
         <dt>{{ t('tests.display.refresh.nearestStandard') }}</dt>
-        <dd aria-live="polite">
+        <dd>
           {{ estimate?.nearestStandardHz ?? '—' }}
         </dd>
       </div>
       <div>
         <dt>{{ t('tests.display.refresh.medianInterval') }}</dt>
-        <dd aria-live="polite">
+        <dd>
           {{ estimate?.medianIntervalMs?.toFixed(2) ?? '—' }} ms
         </dd>
       </div>
       <div>
         <dt>{{ t('tests.display.refresh.samples') }}</dt>
-        <dd aria-live="polite">
+        <dd>
           {{ estimate?.sampleCount ?? 0 }}
         </dd>
       </div>
       <div>
         <dt>{{ t('tests.display.refresh.rejected') }}</dt>
-        <dd aria-live="polite">
+        <dd>
           {{ estimate?.rejectedCount ?? 0 }}
         </dd>
       </div>
       <div>
         <dt>{{ t('tests.display.refresh.jitter') }}</dt>
-        <dd aria-live="polite">
+        <dd>
           {{ jitter?.standardDeviationMs?.toFixed(2) ?? '—' }} ms
         </dd>
       </div>
     </dl>
+    <span
+      class="refresh-panel__live"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      {{
+        estimate
+          ? t('tests.display.refresh.resultAnnouncement', {
+            hz: estimate?.estimatedHz?.toFixed(2) ?? '',
+            std: estimate?.nearestStandardHz ?? '',
+          })
+          : ''
+      }}
+    </span>
   </section>
 </template>
 
@@ -169,8 +183,19 @@ onUnmounted(() => {
     color: var(--text-secondary);
 }
 
+.refresh-panel__live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 .refresh-panel__list dd {
-    margin: 0;
-    font-weight: 600;
+  margin: 0;
+  font-weight: 600;
 }
 </style>
