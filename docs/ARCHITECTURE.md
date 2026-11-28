@@ -207,4 +207,4 @@ Use `src/test-utils/mount.ts` `mountWithPlugins` to mount components with i18n a
 
 ## Unsupported modules
 
-An unsupported module is shown greyed with a reason and a one-click Skip. It is never hidden silently.
+An unsupported module is shown greyed with a generic `t('buttons.unsupported')` message and a one-click Skip. It is never hidden silently.
