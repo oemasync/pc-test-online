@@ -22,11 +22,20 @@ if (!fs.existsSync(ASSETS)) {
   process.exit(1)
 }
 
+const manifestPath = path.join(DIST, '.vite', 'manifest.json')
+if (!fs.existsSync(manifestPath)) {
+  console.error('dist/.vite/manifest.json not found. Enable build.manifest.')
+  process.exit(1)
+}
+const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+
 const files = fs.readdirSync(ASSETS)
 let failed = false
 
-// Entry chunk check
-const entryFiles = files.filter((f) => /^index-.*\.js$/.test(f))
+// Entry chunk check (identified via Vite manifest isEntry).
+const entryFiles = Object.values(manifest)
+  .filter((e) => e && e.isEntry)
+  .map((e) => path.basename(e.file))
 for (const f of entryFiles) {
   const size = gzipSize(path.join(ASSETS, f))
   console.log(`entry ${f}: ${size} bytes gzip (budget ${ENTRY_BUDGET_GZIP})`)
