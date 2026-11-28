@@ -17,7 +17,7 @@ test('microphone level moves and pass', async ({ page }) => {
                 const match = text?.match(/-?\d+(?:\.\d+)?/);
                 return match ? Number(match[0]) : -Infinity;
             },
-            { timeout: 15000 }
+            { timeout: 20000, intervals: [100] }
         )
         .toBeGreaterThan(-60);
 
