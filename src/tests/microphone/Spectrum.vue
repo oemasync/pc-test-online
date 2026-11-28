@@ -2,12 +2,16 @@
   <div class="spectrum">
     <canvas
       ref="waveCanvas"
+      role="img"
+      :aria-label="t('tests.microphone.waveformCanvas')"
       class="spectrum__canvas"
       width="320"
       height="80"
     />
     <canvas
       ref="freqCanvas"
+      role="img"
+      :aria-label="t('tests.microphone.spectrumCanvas')"
       class="spectrum__canvas"
       width="320"
       height="80"
@@ -17,8 +21,11 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 defineOptions({ name: 'SpectrumView' });
+
+const { t } = useI18n();
 
 const props = defineProps<{
     analyser: AnalyserNode | null;

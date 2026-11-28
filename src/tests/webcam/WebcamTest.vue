@@ -109,6 +109,8 @@
 
       <canvas
         ref="canvasRef"
+        role="img"
+        :aria-label="t('tests.webcam.previewCanvas')"
         class="webcam-test__canvas"
       />
     </div>
