@@ -98,9 +98,6 @@ function skipModule(id: string): void {
   align-self: flex-start;
   margin-top: var(--space-2);
 }
-.overview__card--unsupported {
-  opacity: 0.7;
-}
 .overview__link {
   display: flex;
   flex-direction: column;
