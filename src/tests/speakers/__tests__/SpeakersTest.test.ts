@@ -79,27 +79,34 @@ describe('SpeakersTest', () => {
     });
 
     it('clears sinkError after a later successful attempt', async () => {
-        const failing = {
+        const saved = fakeCtx;
+        const failing: { setSinkId: ReturnType<typeof vi.fn> } = {
             setSinkId: vi.fn(async () => {
                 throw new Error('boom');
             }),
-        } as unknown as { setSinkId: ReturnType<typeof vi.fn> };
-        const ok = { setSinkId: vi.fn(async () => undefined) };
-        fakeCtx = failing;
-        const wrapper = mountWithPlugins(SpeakersTest);
-        await flushPromises();
-        const select = wrapper.find('select');
-        await select.setValue('dev1');
-        await select.trigger('change');
-        await flushPromises();
-        expect(wrapper.find('[data-testid="sink-error"]').exists()).toBe(true);
+        };
+        const ok: { setSinkId: ReturnType<typeof vi.fn> } = {
+            setSinkId: vi.fn(async () => undefined),
+        };
+        try {
+            fakeCtx = failing;
+            const wrapper = mountWithPlugins(SpeakersTest);
+            await flushPromises();
+            const select = wrapper.find('select');
+            await select.setValue('dev1');
+            await select.trigger('change');
+            await flushPromises();
+            expect(wrapper.find('[data-testid="sink-error"]').exists()).toBe(true);
 
-        fakeCtx = ok as unknown as { setSinkId: ReturnType<typeof vi.fn> };
-        await select.setValue('');
-        await select.trigger('change');
-        await flushPromises();
-        expect(wrapper.find('[data-testid="sink-error"]').exists()).toBe(false);
-        expect(ok.setSinkId).toHaveBeenCalled();
+            fakeCtx = ok;
+            await select.setValue('');
+            await select.trigger('change');
+            await flushPromises();
+            expect(wrapper.find('[data-testid="sink-error"]').exists()).toBe(false);
+            expect(ok.setSinkId).toHaveBeenCalled();
+        } finally {
+            fakeCtx = saved;
+        }
     });
 
     it('applies selected output device via setSinkId', async () => {
