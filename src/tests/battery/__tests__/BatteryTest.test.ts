@@ -96,3 +96,31 @@ describe('BatteryTest unsupported', () => {
         expect(results.getStatus('battery')).toBe('skipped');
     });
 });
+
+describe('BatteryTest unmount during pending getBattery', () => {
+    it('does not attach listeners if unmounted before resolve', async () => {
+        let resolveBattery: (b: unknown) => void = () => {}
+        const batteryPromise = new Promise((res) => { resolveBattery = res })
+        const addEventListener = vi.fn()
+        const fakeBattery = {
+            charging: true,
+            chargingTime: 100,
+            dischargingTime: Infinity,
+            level: 0.5,
+            addEventListener,
+            removeEventListener: vi.fn(),
+        }
+        Object.defineProperty(navigator, 'getBattery', {
+            value: () => batteryPromise,
+            configurable: true,
+            writable: true,
+        })
+        const BatteryTest = (await import('../BatteryTest.vue')).default
+        const wrapper = mountWithPlugins(BatteryTest)
+        wrapper.unmount()
+        resolveBattery(fakeBattery)
+        await new Promise((r) => setTimeout(r, 0))
+        expect(addEventListener).not.toHaveBeenCalled()
+        delete (navigator as { getBattery?: unknown }).getBattery
+    })
+})

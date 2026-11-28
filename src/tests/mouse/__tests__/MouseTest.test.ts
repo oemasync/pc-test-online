@@ -42,6 +42,13 @@ describe('MouseTest component', () => {
     wrapper.unmount()
   })
 
+  it('registers wheel listener as non-passive', () => {
+    const addSpy = vi.spyOn(HTMLElement.prototype, 'addEventListener')
+    const wrapper = mountWithPlugins(MouseTest)
+    expect(addSpy).toHaveBeenCalledWith('wheel', expect.any(Function), { passive: false })
+    wrapper.unmount()
+  })
+
   it('removes every listener and cancels rAF on unmount', () => {
     const removeSpy = vi.spyOn(HTMLElement.prototype, 'removeEventListener')
     const rafSpy = vi

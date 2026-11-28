@@ -74,10 +74,54 @@ describe('MicrophoneTest', () => {
         vi.unstubAllGlobals();
     });
 
+    it('stops a stream acquired after unmount', async () => {
+        let resolveGum: (s: unknown) => void = () => {}
+        const gumPromise = new Promise((res) => { resolveGum = res })
+        const track = { stop: vi.fn(), getSettings: () => ({}) }
+        const fakeStream = { getAudioTracks: () => [track], getTracks: () => [track] }
+        navigator.mediaDevices.getUserMedia = vi.fn().mockReturnValue(gumPromise)
+        navigator.mediaDevices.enumerateDevices = vi.fn().mockResolvedValue([{ kind: 'audioinput', deviceId: 'mic1', label: 'Mic 1' }])
+        const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 1)
+        const wrapper = mountWithPlugins(MicrophoneTest)
+        await new Promise((r) => setTimeout(r, 0))
+        wrapper.unmount()
+        resolveGum(fakeStream)
+        await new Promise((r) => setTimeout(r, 20))
+        expect(track.stop).toHaveBeenCalled()
+        const scheduledAnalyse = rafSpy.mock.calls.some((c) => c[0]?.name === 'analyse')
+        expect(scheduledAnalyse).toBe(false)
+        rafSpy.mockRestore()
+    })
+
     it('mounts without crashing', () => {
+        const md = {
+            getUserMedia: vi.fn().mockRejectedValue(new Error('denied')),
+            enumerateDevices: vi.fn().mockResolvedValue([]),
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+        }
+        Object.defineProperty(navigator, 'mediaDevices', { value: md, configurable: true, writable: true })
         const wrapper = mountWithPlugins(MicrophoneTest);
         expect(wrapper.exists()).toBe(true);
+        wrapper.unmount()
     });
+
+    it('does not schedule rAF when startStream fails', async () => {
+        const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 1)
+        const md = {
+            getUserMedia: vi.fn().mockRejectedValue(new Error('denied')),
+            enumerateDevices: vi.fn().mockResolvedValue([]),
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+        }
+        Object.defineProperty(navigator, 'mediaDevices', { value: md, configurable: true, writable: true })
+        const wrapper = mountWithPlugins(MicrophoneTest)
+        await new Promise(r => setTimeout(r, 20))
+        const scheduledAnalyse = rafSpy.mock.calls.some((c) => String(c[0]).includes('peakHoldReducer'))
+        expect(scheduledAnalyse).toBe(false)
+        wrapper.unmount()
+        rafSpy.mockRestore()
+    })
 
     it('releases tracks on unmount', async () => {
         const cancelSpy = vi.fn();

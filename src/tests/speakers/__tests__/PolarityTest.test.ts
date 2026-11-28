@@ -16,6 +16,19 @@ describe('PolarityTest', () => {
         fake = makeFakeAudioContext();
     });
 
+    it('clears the 650ms timer on unmount', async () => {
+        const setTimeoutSpy = vi.spyOn(window, 'setTimeout');
+        const clearTimeoutSpy = vi.spyOn(window, 'clearTimeout');
+        const wrapper = mountWithPlugins(PolarityTest);
+        await wrapper.find('[data-testid="play-inphase"]').trigger('click');
+        await flushPromises();
+        const timerId = setTimeoutSpy.mock.results[setTimeoutSpy.mock.results.length - 1]!.value;
+        wrapper.unmount();
+        expect(clearTimeoutSpy).toHaveBeenCalledWith(timerId);
+        setTimeoutSpy.mockRestore();
+        clearTimeoutSpy.mockRestore();
+    });
+
     it('stops and disconnects oscillators on unmount', async () => {
         const wrapper = mountWithPlugins(PolarityTest);
         await wrapper.find('[data-testid="play-inphase"]').trigger('click');
