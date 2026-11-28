@@ -108,6 +108,7 @@ const dischargingTime = ref<number | null>(null);
 const samples = ref<BatterySample[]>([]);
 const hasReading = ref(false);
 const loadError = ref(false);
+let disposed = false;
 
 const WINDOW_MS = 120000;
 const levelPercent = computed(() => levelToPercent(level.value));
@@ -175,10 +176,12 @@ let onChange: (() => void) | null = null;
 
 onMounted(async () => {
     if (!isSupported) return;
+    disposed = false;
     try {
         const b = await (
             navigator as unknown as { getBattery: () => Promise<BatteryManagerLike> }
         ).getBattery();
+        if (disposed) return;
         battery.value = b;
         syncFromBattery(b);
         onChange = () => syncFromBattery(b);
@@ -187,11 +190,12 @@ onMounted(async () => {
         b.addEventListener('chargingtimechange', onChange);
         b.addEventListener('dischargingtimechange', onChange);
     } catch {
-        loadError.value = true;
+        if (!disposed) loadError.value = true;
     }
 });
 
 onUnmounted(() => {
+    disposed = true;
     if (battery.value && onChange) {
         battery.value.removeEventListener('levelchange', onChange);
         battery.value.removeEventListener('chargingchange', onChange);
