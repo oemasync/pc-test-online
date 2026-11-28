@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { mountWithPlugins } from '@/test-utils/mount';
 import MicrophoneTest from '../MicrophoneTest.vue';
+import { getAudioContext } from '@/lib/audio';
 
 class FakeAnalyser {
     fftSize = 2048;
@@ -90,6 +91,7 @@ describe('MicrophoneTest', () => {
         await new Promise(r => setTimeout(r, 10));
         expect(track.stop).toHaveBeenCalled();
         expect(cancelSpy).toHaveBeenCalled();
-        expect(closeSpy).toHaveBeenCalled();
+        expect(closeSpy).not.toHaveBeenCalled();
+        expect(getAudioContext()).not.toBeNull();
     });
 });

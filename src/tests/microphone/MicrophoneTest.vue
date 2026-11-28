@@ -136,6 +136,7 @@ const rmsHistory: SilenceSample[] = [];
 const noiseWindow: number[] = [];
 
 let rafId = 0;
+let disposed = false;
 
 const details = computed(() => ({
     rms: rms.value,
@@ -205,6 +206,11 @@ async function startStream(): Promise<void> {
         },
     };
     const result = await media.start(constraints);
+    if (disposed) {
+        media.stop();
+        teardownGraph();
+        return;
+    }
     if (result.error || !result.stream) {
         errorKind.value = result.error;
         return;
@@ -258,7 +264,7 @@ function analyse(): void {
         if (rmsHistory.length > 200) rmsHistory.shift();
         silent.value = detectSilence(rmsHistory, DEFAULT_SILENCE_THRESHOLD, 2000);
     }
-    rafId = requestAnimationFrame(analyse);
+    rafId = analyser.value ? requestAnimationFrame(analyse) : 0;
 }
 
 function onDeviceChange(id: string): void {
@@ -276,22 +282,24 @@ watch([echoCancellation, noiseSuppression, autoGainControl], () => {
 });
 
 onMounted(async () => {
+    disposed = false;
     await devices.refresh();
+    if (disposed) return;
     if (devices.devices.value.length > 0 && !selectedDeviceId.value) {
         selectedDeviceId.value = devices.devices.value[0]?.deviceId ?? '';
     }
     await startStream();
-    rafId = requestAnimationFrame(analyse);
+    if (disposed) return;
+    if (analyser.value) {
+        rafId = requestAnimationFrame(analyse);
+    }
 });
 
 onBeforeUnmount(() => {
+    disposed = true;
     if (rafId) cancelAnimationFrame(rafId);
     media.stop();
     teardownGraph();
-    if (audioContext.value) {
-        audioContext.value.close();
-        audioContext.value = null;
-    }
 });
 </script>
 
