@@ -2,7 +2,14 @@
   <div
     class="app"
     :data-theme="theme"
+    :data-reduced-motion="reducedMotion"
   >
+    <a
+      class="skip-link"
+      href="#main-content"
+    >
+      {{ t('a11y.skipToContent') }}
+    </a>
     <header class="app__header">
       <div class="app__header-left">
         <a
@@ -64,6 +71,12 @@
                   :data-status="status(m.id)"
                 />
                 <span>{{ t(m.titleKey) }}</span>
+                <svg
+                  aria-hidden="true"
+                  focusable="false"
+                  height="24"
+                  width="1"
+                />
               </router-link>
             </template>
             <template v-else>
@@ -79,6 +92,12 @@
                 />
                 <span>{{ t(m.titleKey) }}</span>
                 <span class="app__unsupported">{{ t('buttons.unsupported') }}</span>
+                <svg
+                  aria-hidden="true"
+                  focusable="false"
+                  height="24"
+                  width="1"
+                />
               </button>
             </template>
           </li>
@@ -86,12 +105,23 @@
             <router-link
               to="/summary"
               class="app__test-link"
-            >Summary</router-link>
+            >Summary
+              <svg
+                aria-hidden="true"
+                focusable="false"
+                height="24"
+                width="1"
+              />
+            </router-link>
           </li>
         </ul>
       </aside>
 
-      <main class="app__main">
+      <main
+        id="main-content"
+        tabindex="-1"
+        class="app__main"
+      >
         <router-view />
       </main>
 
@@ -102,7 +132,11 @@
           class="app__timer"
         >
           <span>{{ t(m.titleKey) }}</span>
-          <span class="app__timer-value">{{ formatElapsed(m.id) }}</span>
+          <span
+            class="app__timer-value"
+            aria-live="polite"
+            aria-atomic="true"
+          >{{ formatElapsed(m.id) }}</span>
         </div>
       </aside>
     </div>
@@ -127,7 +161,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { setLocale } from '@/i18n'
 import { getTestModules } from '@/core/registry'
@@ -135,12 +169,34 @@ import type { TestModule } from '@/core/types'
 import { elapsed, getStatus, reset as resetStore, skip } from '@/core/results'
 import { exportJson } from '@/core/report'
 import StatusLight from '@/ui/StatusLight.vue'
+import { useRoute } from 'vue-router'
 
 const { t, locale } = useI18n()
 const locales = ['en', 'es']
 const modules = getTestModules()
+const route = useRoute()
+
+function focusPageHeading(): void {
+  const main = document.getElementById('main-content')
+  const heading = (main?.querySelector('h1, h2, h3') ?? null) as HTMLElement | null
+  const target = heading ?? main
+  if (!target) return
+  if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1')
+  target.focus()
+}
+
+watch(
+  () => route.fullPath,
+  () => {
+    void nextTick().then(() => {
+      window.setTimeout(focusPageHeading, 50)
+    })
+  },
+  { immediate: true },
+)
 watch(locale, (value) => setLocale(value as 'en' | 'es'))
 const theme = ref<'light' | 'dark'>('light')
+const reducedMotion = ref(false)
 const tick = ref(0)
 
 let timer: ReturnType<typeof setInterval> | null = null
@@ -154,6 +210,11 @@ onMounted(() => {
     theme.value = 'dark'
   }
   applyTheme()
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+  reducedMotion.value = mq.matches
+  mq.addEventListener('change', (e) => {
+    reducedMotion.value = e.matches
+  })
   timer = setInterval(() => {
     tick.value++
   }, 100)
@@ -266,12 +327,27 @@ function exportReport(): void {
 .app__footer button {
   flex: 1 1 0;
 }
+.app__link,
+.skip-link {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+.app__link:hover,
+.skip-link:hover {
+  text-decoration: underline;
+}
 .app__test-link {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   text-decoration: none;
   color: inherit;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 .app__timer {
   display: flex;
