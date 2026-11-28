@@ -62,24 +62,51 @@ describe('SpectrumView', () => {
   });
 
   it('throttles drawing when reduced motion is preferred', async () => {
-    const analyser = {
-      fftSize: 64,
-      frequencyBinCount: 32,
-      getFloatTimeDomainData: (arr: Float32Array) => {
-        for (let i = 0; i < arr.length; i += 1) arr[i] = 0;
-      },
-      getByteFrequencyData: (arr: Uint8Array) => {
-        for (let i = 0; i < arr.length; i += 1) arr[i] = 0;
-      },
-    } as unknown as AnalyserNode;
+    const originalMatchMedia = window.matchMedia;
 
-    const mq = { matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() };
-    vi.stubGlobal('matchMedia', () => mq);
+    const run = async (reducedMotion: boolean): Promise<number> => {
+      let frameIndex = 0;
+      const maxFrames = 63;
+      vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+        const idx = frameIndex;
+        if (idx >= maxFrames) return 0;
+        frameIndex += 1;
+        return setTimeout(() => cb(idx * 16), 0) as unknown as number;
+      });
+      vi.stubGlobal('cancelAnimationFrame', (id: number) => clearTimeout(id));
 
-    const wrapper = mountWithPlugins(SpectrumView, { props: { analyser } });
-    await new Promise((r) => setTimeout(r, 50));
-    expect(wrapper.find('.spectrum').exists()).toBe(true);
-    wrapper.unmount();
+      const getFloatSpy = vi.fn((arr: Float32Array) => {
+        for (let i = 0; i < arr.length; i += 1) arr[i] = 0;
+      });
+      const analyser = {
+        fftSize: 64,
+        frequencyBinCount: 32,
+        getFloatTimeDomainData: getFloatSpy,
+        getByteFrequencyData: (arr: Uint8Array) => {
+          for (let i = 0; i < arr.length; i += 1) arr[i] = 0;
+        },
+      } as unknown as AnalyserNode;
+
+      const mq = {
+        matches: reducedMotion,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      };
+      vi.stubGlobal('matchMedia', () => mq);
+
+      const wrapper = mountWithPlugins(SpectrumView, { props: { analyser } });
+      await new Promise((r) => setTimeout(r, 200));
+      wrapper.unmount();
+      return getFloatSpy.mock.calls.length;
+    };
+
+    const reducedCount = await run(true);
+    const normalCount = await run(false);
+    window.matchMedia = originalMatchMedia;
+
+    expect(reducedCount).toBeGreaterThanOrEqual(3);
+    expect(reducedCount).toBeLessThanOrEqual(5);
+    expect(normalCount).toBeGreaterThan(50);
   });
     it('does not crash when analyser is null', async () => {
     const wrapper = mountWithPlugins(SpectrumView, { props: { analyser: null } });

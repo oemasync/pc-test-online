@@ -50,13 +50,13 @@ function draw(now?: number): void {
     const wave = waveCanvas.value;
     const freq = freqCanvas.value;
     if (!analyser || !wave || !freq) {
-        if (!reduced.value) rafId = requestAnimationFrame(draw)
+        rafId = requestAnimationFrame(draw);
         return;
     }
     const wctx = wave.getContext('2d');
     const fctx = freq.getContext('2d');
     if (!wctx || !fctx) {
-        if (!reduced.value) rafId = requestAnimationFrame(draw)
+        rafId = requestAnimationFrame(draw);
         return;
     }
 
@@ -91,15 +91,11 @@ function draw(now?: number): void {
         fctx.fillRect(i * barWidth, freq.height - h, barWidth - 1, h);
     }
 
-    if (!reduced.value) rafId = requestAnimationFrame(draw)
+    rafId = requestAnimationFrame(draw);
 }
 
 onMounted(() => {
-    if (reduced.value) {
-        draw();
-    } else {
-        rafId = requestAnimationFrame(draw);
-    }
+    rafId = requestAnimationFrame(draw);
 });
 
 onBeforeUnmount(() => {
