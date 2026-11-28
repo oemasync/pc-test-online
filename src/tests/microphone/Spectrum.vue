@@ -37,8 +37,15 @@ const waveCanvas = ref<HTMLCanvasElement | null>(null);
 const freqCanvas = ref<HTMLCanvasElement | null>(null);
 
 let rafId = 0;
+let lastDrawTime = 0;
 
-function draw(): void {
+function draw(now?: number): void {
+    const time = now ?? performance.now();
+    if (reduced.value && time - lastDrawTime < 250) {
+        rafId = requestAnimationFrame(draw);
+        return;
+    }
+    if (reduced.value) lastDrawTime = time;
     const analyser = props.analyser;
     const wave = waveCanvas.value;
     const freq = freqCanvas.value;
