@@ -114,13 +114,13 @@ function onKeyDown(event: KeyboardEvent): void {
 }
 
 onMounted(() => {
-  stageRef.value?.addEventListener('keydown', onKeyDown)
+  window.addEventListener('keydown', onKeyDown)
 })
 
 defineExpose({ stageRef })
 
 onUnmounted(() => {
-  stageRef.value?.removeEventListener('keydown', onKeyDown)
+  window.removeEventListener('keydown', onKeyDown)
   void document.exitFullscreen?.()
 })
 </script>
