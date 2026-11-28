@@ -94,9 +94,11 @@ onBeforeUnmount(() => {
     gap: 0.5rem;
 }
 .spectrum__canvas {
-    width: 100%;
-    height: 80px;
-    background: var(--bg);
-    border-radius: 4px;
+  width: 100%;
+  max-width: 100%;
+  height: 80px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 </style>

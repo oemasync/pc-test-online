@@ -110,17 +110,18 @@ onUnmounted(() => {
 }
 .keyboard__key {
   min-width: 2.5rem;
-  padding: 0.25rem;
-  border: 1px solid var(--border, #ccc);
-  border-radius: 4px;
+  padding: var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   text-align: center;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 .keyboard__key--pressed {
-  background: #f59e0b;
+  background: var(--color-warning);
+  color: var(--text);
 }
 .keyboard__key--tested {
-  background: #22c55e;
-  color: #fff;
+  background: var(--color-success);
+  color: var(--text);
 }
 </style>
