@@ -27,6 +27,7 @@ docker run --rm -p 8080:8080 pc-test-online
 - The image is multi-stage: `node:24-alpine` builds, `nginxinc/nginx-unprivileged:alpine` serves.
 - The app is a single-page application; nginx falls back to `index.html`.
 - `/healthz` returns `200 ok`.
+- `sw.js` and `manifest.webmanifest` are served with `Cache-Control: no-cache`.
 
 ### HSTS
 

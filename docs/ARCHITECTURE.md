@@ -161,6 +161,46 @@ Light (`:root`) and dark (`[data-theme='dark']`) define the complete semantic to
 - `--color-accent`
 - `--color-text-muted`
 
+## Bundle and PWA
+
+### Code splitting
+
+Non-overview routes (`/test/:id`, `/summary`, 404) are lazy-loaded via dynamic `import()` in
+`src/router.ts`. The overview keeps its module metadata eager through the registry, so rendering
+the grid needs no module component code. Vendor chunks (`vendor-vue`) are split in
+`vite.config.ts`.
+
+### Service worker cache strategy and update behaviour
+
+`public/sw.js` is hand-written and registered in `src/main.ts` only in production builds.
+
+- Precache: the app shell list is injected at build time by the `precache-manifest` Vite plugin.
+- Hashed assets: cache-first from the runtime cache, populated on miss.
+- Navigations: network-first, caching only `ok` responses; offline falls back to the cached
+  navigation or `/index.html`.
+- Cross-origin requests and media streams (video/audio destinations, `Range` requests, blob/
+  mediastream URLs) are never cached.
+- Cache names include a build hash derived from the sorted precache list, so a new build creates
+  new caches and `activate` deletes the previous build's caches.
+- The worker does **not** call `skipWaiting()`. A new worker waits for existing tabs to close
+  before activating, avoiding broken lazy chunks after a deploy. `clients.claim()` runs on
+  activate (safe for the first install). `src/router.ts` registers `router.onError` to detect a
+  failed dynamic import and reload once via `window.location.assign`, guarded by `sessionStorage`
+  against loops.
+
+### Precache plugin
+
+`vite.config.ts` defines a small `precache-manifest` plugin (`apply: 'build'`) that walks `dist`,
+excludes `sw.js`, source maps and the `.vite/` directory, sorts the remaining files, computes a
+short SHA-256 of the list, rewrites `public/sw.js`'s `__PRECACHE_MANIFEST__` placeholder with the
+JSON file list and `__BUILD_VERSION__` placeholders with the hash.
+
+### Size budget
+
+`scripts/size-check.mjs` (npm script `size-check`) reads `dist/.vite/manifest.json` to find the
+`isEntry` chunk(s) and fails if any entry chunk exceeds 27000 bytes gzip, or any file under
+`dist/assets` exceeds 150 kB gzip. CI runs it after the build step.
+
 ## Testing helpers
 
 Use `src/test-utils/mount.ts` `mountWithPlugins` to mount components with i18n and router.
