@@ -5,6 +5,13 @@
         {{ title }}
       </h2>
       <StatusLight :status="status" />
+      <span
+        class="test-layout__status-live"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {{ t(`status.${status}`) }}
+      </span>
     </header>
     <p class="test-layout__instructions">
       <slot name="instructions" />
@@ -138,6 +145,17 @@ function onRetest(): void {
 }
 .test-layout__btn {
   flex: 1 1 0;
+}
+.test-layout__status-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 .test-layout__btn:disabled {
   opacity: 0.5;

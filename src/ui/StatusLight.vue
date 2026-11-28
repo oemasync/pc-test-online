@@ -4,8 +4,6 @@
     :class="`status-light--${status}`"
     :aria-label="t(`status.${status}`)"
     role="img"
-    aria-live="polite"
-    aria-atomic="true"
   />
 </template>
 
