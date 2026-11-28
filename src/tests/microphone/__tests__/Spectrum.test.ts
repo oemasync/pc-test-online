@@ -61,7 +61,27 @@ describe('SpectrumView', () => {
     wrapper.unmount();
   });
 
-  it('does not crash when analyser is null', async () => {
+  it('throttles drawing when reduced motion is preferred', async () => {
+    const analyser = {
+      fftSize: 64,
+      frequencyBinCount: 32,
+      getFloatTimeDomainData: (arr: Float32Array) => {
+        for (let i = 0; i < arr.length; i += 1) arr[i] = 0;
+      },
+      getByteFrequencyData: (arr: Uint8Array) => {
+        for (let i = 0; i < arr.length; i += 1) arr[i] = 0;
+      },
+    } as unknown as AnalyserNode;
+
+    const mq = { matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() };
+    vi.stubGlobal('matchMedia', () => mq);
+
+    const wrapper = mountWithPlugins(SpectrumView, { props: { analyser } });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(wrapper.find('.spectrum').exists()).toBe(true);
+    wrapper.unmount();
+  });
+    it('does not crash when analyser is null', async () => {
     const wrapper = mountWithPlugins(SpectrumView, { props: { analyser: null } });
     await new Promise((r) => setTimeout(r, 20));
     expect(wrapper.find('.spectrum').exists()).toBe(true);
