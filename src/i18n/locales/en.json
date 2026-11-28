@@ -63,5 +63,8 @@
     "unsupported": "This browser does not support the feature.",
     "unknown": "An unknown error occurred."
   },
-  "tests": {}
+  "tests": {},
+  "a11y": {
+    "skipToContent": "Skip to main content"
+  }
 }

@@ -15,5 +15,7 @@
   "noiseSuppression": "Supresión de ruido",
   "autoGainControl": "Control automático de ganancia",
   "applied": "Aplicado",
-  "deviceLabel": "Dispositivo"
+  "deviceLabel": "Dispositivo",
+  "waveformCanvas": "Forma de onda de audio",
+  "spectrumCanvas": "Espectro de frecuencia"
 }

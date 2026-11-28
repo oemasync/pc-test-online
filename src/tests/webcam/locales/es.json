@@ -14,5 +14,6 @@
   "coveredLensWarning": "El fotograma parece una lente cubierta.",
   "stalledWarning": "No se ha presentado un nuevo fotograma.",
   "staticWarning": "La imagen parece congelada.",
-  "noCapabilities": "Capacidades no disponibles en este navegador."
+  "noCapabilities": "Capacidades no disponibles en este navegador.",
+  "previewCanvas": "Vista previa de la webcam"
 }
