@@ -16,6 +16,19 @@
         </p>
       </div>
     </div>
+    <p
+      class="pixel-cycle__warning"
+      role="note"
+    >
+      {{ t('tests.display.pixelCycle.photosensitivityWarning') }}
+    </p>
+    <p
+      v-if="reduced"
+      class="pixel-cycle__reduced"
+      role="status"
+    >
+      {{ t('tests.display.pixelCycle.reducedMotionNote') }}
+    </p>
     <div class="pixel-cycle__actions">
       <button
         type="button"
@@ -46,6 +59,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useReducedMotion } from '@/lib/useReducedMotion';
 import { advanceColorSequence, createColorSequenceState } from './logic';
 import { useFullscreen } from './useFullscreen';
 import type { ColorSequenceEvent, DisplayColor } from './logic';
@@ -56,6 +70,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { reduced } = useReducedMotion();
 const stageRef = ref<HTMLElement | null>(null);
 const state = ref(createColorSequenceState(0));
 const defects = ref<DisplayColor[]>([]);
@@ -125,14 +140,14 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ffffff;
+    color: var(--overlay-text);
     text-shadow: none;
 }
 
 .pixel-cycle__overlay {
     padding: 1rem;
     text-align: center;
-    background: rgba(0, 0, 0, 0.55);
+    background: var(--overlay-bg);
     border-radius: 0.5rem;
 }
 

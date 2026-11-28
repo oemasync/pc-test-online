@@ -9,7 +9,9 @@
     "currentColor": "Current color",
     "markDefect": "Mark defect on this color",
     "defects": "Marked defect colors",
-    "fullscreenUnavailable": "Fullscreen is unavailable in this browser"
+    "fullscreenUnavailable": "Fullscreen is unavailable in this browser",
+    "photosensitivityWarning": "This test flashes full-screen colors. Stop if you feel discomfort; advance manually with the arrow keys.",
+    "reducedMotionNote": "Reduced motion is on: colors advance only when you move them."
   },
   "gradient": {
     "title": "Gradient banding",

@@ -22,10 +22,12 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useReducedMotion } from '@/lib/useReducedMotion';
 
 defineOptions({ name: 'SpectrumView' });
 
 const { t } = useI18n();
+const { reduced } = useReducedMotion();
 
 const props = defineProps<{
     analyser: AnalyserNode | null;
@@ -41,13 +43,13 @@ function draw(): void {
     const wave = waveCanvas.value;
     const freq = freqCanvas.value;
     if (!analyser || !wave || !freq) {
-        rafId = requestAnimationFrame(draw);
+        if (!reduced.value) rafId = requestAnimationFrame(draw)
         return;
     }
     const wctx = wave.getContext('2d');
     const fctx = freq.getContext('2d');
     if (!wctx || !fctx) {
-        rafId = requestAnimationFrame(draw);
+        if (!reduced.value) rafId = requestAnimationFrame(draw)
         return;
     }
 
@@ -82,11 +84,15 @@ function draw(): void {
         fctx.fillRect(i * barWidth, freq.height - h, barWidth - 1, h);
     }
 
-    rafId = requestAnimationFrame(draw);
+    if (!reduced.value) rafId = requestAnimationFrame(draw)
 }
 
 onMounted(() => {
-    rafId = requestAnimationFrame(draw);
+    if (reduced.value) {
+        draw();
+    } else {
+        rafId = requestAnimationFrame(draw);
+    }
 });
 
 onBeforeUnmount(() => {

@@ -9,7 +9,9 @@
     "currentColor": "Color actual",
     "markDefect": "Marcar defecto en este color",
     "defects": "Colores con defectos marcados",
-    "fullscreenUnavailable": "La pantalla completa no está disponible en este navegador"
+    "fullscreenUnavailable": "La pantalla completa no está disponible en este navegador",
+    "photosensitivityWarning": "Esta prueba muestra colores a pantalla completa. Detente si sientes molestias; avanza manualmente con las flechas.",
+    "reducedMotionNote": "Movimiento reducido activo: los colores avanzan solo cuando los cambias."
   },
   "gradient": {
     "title": "Bandeado de degradados",
