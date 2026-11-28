@@ -27,7 +27,7 @@ function precacheManifestPlugin() {
         .filter((f) => f !== '/sw.js' && !f.endsWith('.map'))
       const swPath = path.join(dist, 'sw.js')
       const sw = fs.readFileSync(swPath, 'utf8')
-      fs.writeFileSync(swPath, sw.replace('__PRECACHE_MANIFEST__', JSON.stringify(files)))
+      fs.writeFileSync(swPath, sw.replace('"__PRECACHE_MANIFEST__"', JSON.stringify(files)))
       console.log(`precache manifest: ${files.length} files`)
     },
   }

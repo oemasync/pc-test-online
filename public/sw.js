@@ -1,15 +1,14 @@
-/* global __PRECACHE_MANIFEST__ */
 // Service worker for pc-test-online (hand-written, no dependencies).
-const PRECACHE_NAME = 'pc-test-online-precache-v1'
-const RUNTIME_NAME = 'pc-test-online-runtime-v1'
+const PRECACHE_NAME = 'pc-test-online-precache-v7'
+const RUNTIME_NAME = 'pc-test-online-runtime-v7'
 
-const PRECACHE_ASSETS = __PRECACHE_MANIFEST__
+const PRECACHE_ASSETS = "__PRECACHE_MANIFEST__"
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(PRECACHE_NAME)
-      await cache.addAll(PRECACHE_ASSETS.map((u) => new Request(u, { credentials: 'same-origin' })))
+      await cache.addAll(PRECACHE_ASSETS)
       await self.skipWaiting()
     })(),
   )
@@ -40,7 +39,6 @@ function isNavigation(request) {
 function isMedia(request, url) {
   if (request.destination === 'video' || request.destination === 'audio') return true
   if (request.headers.has('range')) return true
-  // never cache media streams or cross-origin requests
   if (url.protocol === 'blob:' || url.protocol === 'mediastream:') return true
   return false
 }
@@ -51,9 +49,8 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url)
 
-  // Never cache cross-origin requests.
+  // Never cache cross-origin requests or media streams: fall through to network.
   if (!isSameOrigin(url)) return
-  // Never cache media streams.
   if (isMedia(request, url)) return
 
   if (isNavigation(request)) {
@@ -65,10 +62,10 @@ self.addEventListener('fetch', (event) => {
           cache.put(request, network.clone())
           return network
         } catch {
-          const cached = await caches.match(request)
+          const cached = await caches.match(request, { ignoreVary: true })
           if (cached) return cached
           const precache = await caches.open(PRECACHE_NAME)
-          const fallback = await precache.match('/index.html')
+          const fallback = await precache.match('/index.html', { ignoreVary: true })
           return fallback || Response.error()
         }
       })(),
@@ -79,9 +76,9 @@ self.addEventListener('fetch', (event) => {
   // Cache-first for hashed assets and other same-origin GETs.
   event.respondWith(
     (async () => {
-      const cached = await caches.match(request)
-      if (cached) return cached
       try {
+        const cached = await caches.match(request, { ignoreVary: true })
+        if (cached) return cached
         const network = await fetch(request)
         if (network && network.status === 200) {
           const cache = await caches.open(RUNTIME_NAME)
@@ -89,6 +86,8 @@ self.addEventListener('fetch', (event) => {
         }
         return network
       } catch {
+        const cached = await caches.match(request, { ignoreVary: true })
+        if (cached) return cached
         return Response.error()
       }
     })(),
