@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mountWithPlugins } from '@/test-utils/mount';
 import SpectrumView from '../Spectrum.vue';
 
@@ -28,6 +28,11 @@ describe('SpectrumView', () => {
       return setTimeout(() => cb(performance.now()), 0) as unknown as number;
     });
     vi.stubGlobal('cancelAnimationFrame', (id: number) => clearTimeout(id));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it('reads token colours into the canvas context', async () => {
@@ -62,6 +67,7 @@ describe('SpectrumView', () => {
   });
 
   it('throttles drawing when reduced motion is preferred', async () => {
+    vi.useFakeTimers();
     const originalMatchMedia = window.matchMedia;
 
     const run = async (reducedMotion: boolean): Promise<number> => {
@@ -95,7 +101,7 @@ describe('SpectrumView', () => {
       vi.stubGlobal('matchMedia', () => mq);
 
       const wrapper = mountWithPlugins(SpectrumView, { props: { analyser } });
-      await new Promise((r) => setTimeout(r, 200));
+      await vi.runAllTimersAsync();
       wrapper.unmount();
       return getFloatSpy.mock.calls.length;
     };
@@ -103,6 +109,7 @@ describe('SpectrumView', () => {
     const reducedCount = await run(true);
     const normalCount = await run(false);
     window.matchMedia = originalMatchMedia;
+    vi.useRealTimers();
 
     expect(reducedCount).toBeGreaterThanOrEqual(3);
     expect(reducedCount).toBeLessThanOrEqual(5);
