@@ -96,33 +96,33 @@ async function startFullscreen(): Promise<void> {
 }
 
 function onKeyDown(event: KeyboardEvent): void {
-  const target = event.target as HTMLElement | null
-  if (target && (target.tagName === 'BUTTON' || target.tagName === 'A' || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
-    return
-  }
-  if (event.key === 'ArrowRight' || event.key === ' ') {
-    event.preventDefault();
-    next();
-  } else if (event.key === 'ArrowLeft') {
-    event.preventDefault();
-    previous();
-  } else if (event.key === 'Escape') {
-    if (document.fullscreenElement === stageRef.value) {
-      void document.exitFullscreen?.();
+    const target = event.target as HTMLElement | null;
+    if (target && (target.tagName === 'BUTTON' || target.tagName === 'A' || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+        return;
     }
-  }
+    if (event.key === 'ArrowRight' || event.key === ' ') {
+        event.preventDefault();
+        next();
+    } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        previous();
+    } else if (event.key === 'Escape') {
+        if (document.fullscreenElement === stageRef.value) {
+            void document.exitFullscreen?.();
+        }
+    }
 }
 
 onMounted(() => {
-  window.addEventListener('keydown', onKeyDown)
-})
+    window.addEventListener('keydown', onKeyDown);
+});
 
-defineExpose({ stageRef })
+defineExpose({ stageRef });
 
 onUnmounted(() => {
-  window.removeEventListener('keydown', onKeyDown)
-  void document.exitFullscreen?.()
-})
+    window.removeEventListener('keydown', onKeyDown);
+    void document.exitFullscreen?.();
+});
 </script>
 
 <style scoped>
