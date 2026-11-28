@@ -17,6 +17,7 @@
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "e2e": "playwright test",
+    "size-check": "node scripts/size-check.mjs",
     "csp-check": "npm run build && node scripts/csp-check.mjs",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build"
   },

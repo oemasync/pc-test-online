@@ -28,4 +28,10 @@ export default [
       globals: globals.node,
     },
   },
+  {
+    files: ['public/sw.js'],
+    languageOptions: {
+      globals: { ...globals.serviceworker, ...globals.browser },
+    },
+  },
 ]
