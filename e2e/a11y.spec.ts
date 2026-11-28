@@ -50,8 +50,11 @@ for (const scheme of ['light', 'dark'] as const) {
     for (const id of MODULES) {
       test(`/test/${id}`, async ({ page }) => {
         await page.goto(`/test/${id}`)
-        // wait a bit for async component
-        await page.waitForTimeout(500)
+        // wait for async module to render its heading or unsupported message
+        await Promise.race([
+          page.locator('h2').first().waitFor({ state: 'visible', timeout: 10000 }),
+          page.locator('button[data-testid="skip-button"]').first().waitFor({ state: 'visible', timeout: 10000 }),
+        ]).catch(() => {})
         const v = await runAxe(page)
         expect(v, JSON.stringify(v, null, 2)).toEqual([])
       })
