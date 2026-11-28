@@ -7,3 +7,11 @@ const app = createApp(App)
 app.use(router)
 app.use(i18n)
 app.mount('#app')
+
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // Registration failure is non-fatal.
+    })
+  })
+}
