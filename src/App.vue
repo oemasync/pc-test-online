@@ -211,7 +211,6 @@ function exportReport(): void {
 
   --color-on-success: #052e16;
   --color-on-warning: #422006;
-  --color-on-danger: #7f1d1d;
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -262,7 +261,6 @@ function exportReport(): void {
 
   --color-on-success: #052e16;
   --color-on-warning: #422006;
-  --color-on-danger: #7f1d1d;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
