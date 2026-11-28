@@ -1,6 +1,8 @@
 <template>
   <div class="summary">
-    <h1 tabindex="-1">{{ t('summary.title') }}</h1>
+    <h1 tabindex="-1">
+      {{ t('summary.title') }}
+    </h1>
     <div
       v-if="hasResults"
       class="summary__table-wrap"
