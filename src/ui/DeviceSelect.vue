@@ -30,6 +30,7 @@ function onChange(e: Event): void {
 
 <style scoped>
 .device-select {
-  padding: 0.25rem 0.5rem;
+  padding: var(--space-1) var(--space-2);
+  min-height: 2rem;
 }
 </style>

@@ -64,24 +64,64 @@ function skipModule(id: string): void {
 </script>
 
 <style scoped>
+.overview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
 .overview__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: var(--space-4);
+  align-items: stretch;
 }
 .overview__card {
-  display: block;
-  padding: 1rem;
-  border: 1px solid var(--border, #ccc);
-  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   color: inherit;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+.overview__card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.overview__card button {
+  align-self: flex-start;
+  margin-top: var(--space-2);
 }
 .overview__card--unsupported {
-  opacity: 0.6;
+  opacity: 0.7;
 }
 .overview__link {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   text-decoration: none;
   color: inherit;
+}
+.overview__icon {
+  font-size: var(--text-2xl);
+  line-height: 1;
+}
+.overview__title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+.overview__desc {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+.overview__reason {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0;
 }
 </style>

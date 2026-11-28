@@ -1,7 +1,10 @@
 <template>
   <div class="summary">
     <h1>{{ t('summary.title') }}</h1>
-    <div v-if="hasResults">
+    <div
+      v-if="hasResults"
+      class="summary__table-wrap"
+    >
       <table>
         <thead>
           <tr>
@@ -69,18 +72,33 @@ function print(): void {
 </script>
 
 <style scoped>
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.summary__table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
 .summary__actions {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
 }
 table {
   width: 100%;
   border-collapse: collapse;
 }
 th, td {
-  padding: 0.5rem;
-  border-bottom: 1px solid var(--border, #ccc);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
   text-align: left;
+  font-size: var(--text-sm);
+}
+th {
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 </style>
