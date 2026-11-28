@@ -2,15 +2,19 @@
   <span
     class="status-light"
     :class="`status-light--${status}`"
-    :aria-label="status"
+    :aria-label="t(`status.${status}`)"
     role="img"
+    aria-live="polite"
+    aria-atomic="true"
   />
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import type { TestStatus } from '@/core/types'
 
 defineProps<{ status: TestStatus }>()
+const { t } = useI18n()
 </script>
 
 <style scoped>

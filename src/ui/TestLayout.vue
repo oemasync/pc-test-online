@@ -1,7 +1,9 @@
 <template>
   <section class="test-layout">
     <header class="test-layout__header">
-      <h2>{{ title }}</h2>
+      <h2 tabindex="-1">
+        {{ title }}
+      </h2>
       <StatusLight :status="status" />
     </header>
     <p class="test-layout__instructions">
