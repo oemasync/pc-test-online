@@ -16,14 +16,15 @@ defineProps<{ status: TestStatus }>()
 <style scoped>
 .status-light {
   display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #9ca3af;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: var(--radius-full);
+  background: var(--color-text-muted);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--bg) 80%, transparent);
 }
-.status-light--pending { background: #9ca3af; }
-.status-light--running { background: #f59e0b; }
-.status-light--passed { background: #22c55e; }
-.status-light--failed { background: #ef4444; }
-.status-light--skipped { background: #6b7280; }
+.status-light--pending { background: var(--color-text-muted); }
+.status-light--running { background: var(--color-warning); }
+.status-light--passed { background: var(--color-success); }
+.status-light--failed { background: var(--color-danger); }
+.status-light--skipped { background: var(--text-secondary); }
 </style>

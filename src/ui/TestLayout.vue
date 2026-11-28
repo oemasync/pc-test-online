@@ -128,19 +128,28 @@ function onRetest(): void {
 .test-layout {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 .test-layout__actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 .test-layout__btn {
   flex: 1 1 0;
+  min-width: 5rem;
 }
 .test-layout__btn:disabled {
   opacity: 0.5;
 }
+.test-layout__note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
 .test-layout__note textarea {
   width: 100%;
+  min-height: 4rem;
+  resize: vertical;
 }
 </style>

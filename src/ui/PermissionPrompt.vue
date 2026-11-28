@@ -23,7 +23,10 @@ const message = computed(() =>
 
 <style scoped>
 .permission-prompt {
-  padding: 0.5rem;
-  color: #ef4444;
+  padding: var(--space-3);
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);
+  border-radius: var(--radius-md);
 }
 </style>

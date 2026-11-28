@@ -17,14 +17,21 @@ defineProps<{ label: string; value: string | number }>()
 .stat-tile {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
 }
 .stat-tile__label {
-  font-size: 0.75rem;
-  color: var(--text-secondary, #6b7280);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 .stat-tile__value {
-  font-size: 1.125rem;
+  font-size: var(--text-lg);
   font-weight: 600;
+  line-height: var(--leading-tight);
 }
 </style>
