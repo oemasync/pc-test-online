@@ -41,6 +41,7 @@ export function useSensors() {
   const permissionError = ref<string | null>(null);
 
   const genericSensors: Partial<Record<SensorKey, SensorInstance>> = {};
+  const sensorHandlers: Partial<Record<SensorKey, { reading: () => void; error: (e: Event) => void }>> = {};
   let tickTimer: number | null = null;
 
   const sensorKeys: SensorKey[] = [
@@ -170,22 +171,25 @@ export function useSensors() {
         try {
           const sensor = new Ctor({ frequency: 10 });
           genericSensors[key] = sensor;
-          sensor.addEventListener('reading', () => {
+          const readingHandler = () => {
             availability.value = availabilityReducer(availability.value, {
               type: 'reading',
               sensor: key,
               timestampMs: Date.now(),
               hasValue: true,
             });
-          });
-          sensor.addEventListener('error', (e: Event) => {
+          };
+          const errorHandler = (e: Event) => {
             const err = (e as { error?: { name?: string } }).error;
             availability.value = availabilityReducer(availability.value, {
               type: 'error',
               sensor: key,
               errorName: err?.name ?? 'Error',
             });
-          });
+          };
+          sensorHandlers[key] = { reading: readingHandler, error: errorHandler };
+          sensor.addEventListener('reading', readingHandler);
+          sensor.addEventListener('error', errorHandler);
           sensor.start();
         } catch (err) {
           availability.value = availabilityReducer(availability.value, {
@@ -265,6 +269,14 @@ export function useSensors() {
     window.removeEventListener('devicemotion', onMotion as EventListener);
     for (const s of Object.values(genericSensors)) {
       s?.stop();
+    }
+    for (const key of Object.keys(genericSensors)) {
+      const sensor = genericSensors[key as SensorKey];
+      const handlers = sensorHandlers[key as SensorKey];
+      if (sensor && handlers) {
+        sensor.removeEventListener('reading', handlers.reading);
+        sensor.removeEventListener('error', handlers.error);
+      }
     }
   });
 
