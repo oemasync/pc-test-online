@@ -49,14 +49,18 @@ const next = computed(() => (idx.value >= 0 && idx.value < modules.length - 1 ? 
 const supported = computed(() => module.value?.isSupported?.() ?? true)
 
 const component = shallowRef<Component | null>(null)
+let loadToken = 0
 watch(
   module,
   async (m) => {
+    const token = ++loadToken
     component.value = null
     if (m) {
       if (getStatus(m.id) === 'pending') start(m.id)
       if (m.isSupported?.() === false) return
       const loaded = await m.component()
+      if (token !== loadToken) return
+      if (module.value?.id !== m.id) return
       component.value = (loaded as { default?: Component }).default ?? (loaded as Component)
     }
   },
