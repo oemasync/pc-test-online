@@ -22,13 +22,6 @@
     >
       {{ t('tests.display.pixelCycle.photosensitivityWarning') }}
     </p>
-    <p
-      v-if="reduced"
-      class="pixel-cycle__reduced"
-      role="status"
-    >
-      {{ t('tests.display.pixelCycle.reducedMotionNote') }}
-    </p>
     <div class="pixel-cycle__actions">
       <button
         type="button"
@@ -59,7 +52,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useReducedMotion } from '@/lib/useReducedMotion';
 import { advanceColorSequence, createColorSequenceState } from './logic';
 import { useFullscreen } from './useFullscreen';
 import type { ColorSequenceEvent, DisplayColor } from './logic';
@@ -70,7 +62,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { reduced } = useReducedMotion();
 const stageRef = ref<HTMLElement | null>(null);
 const state = ref(createColorSequenceState(0));
 const defects = ref<DisplayColor[]>([]);
@@ -105,29 +96,33 @@ async function startFullscreen(): Promise<void> {
 }
 
 function onKeyDown(event: KeyboardEvent): void {
-    if (event.key === 'ArrowRight' || event.key === ' ') {
-        event.preventDefault();
-        next();
-    } else if (event.key === 'ArrowLeft') {
-        event.preventDefault();
-        previous();
-    } else if (event.key === 'Escape') {
-        if (document.fullscreenElement === stageRef.value) {
-            void document.exitFullscreen?.();
-        }
+  const target = event.target as HTMLElement | null
+  if (target && (target.tagName === 'BUTTON' || target.tagName === 'A' || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+    return
+  }
+  if (event.key === 'ArrowRight' || event.key === ' ') {
+    event.preventDefault();
+    next();
+  } else if (event.key === 'ArrowLeft') {
+    event.preventDefault();
+    previous();
+  } else if (event.key === 'Escape') {
+    if (document.fullscreenElement === stageRef.value) {
+      void document.exitFullscreen?.();
     }
+  }
 }
 
 onMounted(() => {
-  window.addEventListener('keydown', onKeyDown)
+  stageRef.value?.addEventListener('keydown', onKeyDown)
 })
 
 defineExpose({ stageRef })
 
 onUnmounted(() => {
-    window.removeEventListener('keydown', onKeyDown);
-    void document.exitFullscreen?.();
-});
+  stageRef.value?.removeEventListener('keydown', onKeyDown)
+  void document.exitFullscreen?.()
+})
 </script>
 
 <style scoped>
