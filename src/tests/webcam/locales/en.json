@@ -14,5 +14,6 @@
   "coveredLensWarning": "The frame looks like a covered lens.",
   "stalledWarning": "No new frame has been presented.",
   "staticWarning": "The image appears frozen.",
-  "noCapabilities": "Capabilities not available in this browser."
+  "noCapabilities": "Capabilities not available in this browser.",
+  "previewCanvas": "Webcam preview"
 }

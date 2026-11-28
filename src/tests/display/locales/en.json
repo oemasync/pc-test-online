@@ -9,7 +9,8 @@
     "currentColor": "Current color",
     "markDefect": "Mark defect on this color",
     "defects": "Marked defect colors",
-    "fullscreenUnavailable": "Fullscreen is unavailable in this browser"
+    "fullscreenUnavailable": "Fullscreen is unavailable in this browser",
+    "photosensitivityWarning": "Photosensitivity warning: this test rapidly cycles full-screen colors and may trigger seizures. Do not run it if you are photosensitive."
   },
   "gradient": {
     "title": "Gradient banding",
@@ -38,7 +39,8 @@
     "medianInterval": "Median frame interval",
     "samples": "Samples",
     "rejected": "Rejected outliers",
-    "jitter": "Frame pacing jitter"
+    "jitter": "Frame pacing jitter",
+    "resultAnnouncement": "Measured refresh rate {hz} Hz, nearest standard {std} Hz."
   },
   "capability": {
     "title": "HDR / gamut capability",

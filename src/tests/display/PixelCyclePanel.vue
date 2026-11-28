@@ -16,6 +16,12 @@
         </p>
       </div>
     </div>
+    <p
+      class="pixel-cycle__warning"
+      role="note"
+    >
+      {{ t('tests.display.pixelCycle.photosensitivityWarning') }}
+    </p>
     <div class="pixel-cycle__actions">
       <button
         type="button"
@@ -90,6 +96,10 @@ async function startFullscreen(): Promise<void> {
 }
 
 function onKeyDown(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (target && (target.tagName === 'BUTTON' || target.tagName === 'A' || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+        return;
+    }
     if (event.key === 'ArrowRight' || event.key === ' ') {
         event.preventDefault();
         next();
@@ -104,10 +114,10 @@ function onKeyDown(event: KeyboardEvent): void {
 }
 
 onMounted(() => {
-  window.addEventListener('keydown', onKeyDown)
-})
+    window.addEventListener('keydown', onKeyDown);
+});
 
-defineExpose({ stageRef })
+defineExpose({ stageRef });
 
 onUnmounted(() => {
     window.removeEventListener('keydown', onKeyDown);
@@ -125,13 +135,15 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text);
-    text-shadow: 0 1px 2px var(--bg);
+    color: var(--overlay-text);
+    text-shadow: none;
 }
 
 .pixel-cycle__overlay {
     padding: 1rem;
     text-align: center;
+    background: var(--overlay-bg);
+    border-radius: 0.5rem;
 }
 
 .pixel-cycle__hint {

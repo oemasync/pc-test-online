@@ -4,6 +4,8 @@
     <p>{{ t('tests.display.sharpness.description') }}</p>
     <canvas
       ref="canvasRef"
+      role="img"
+      :aria-label="t('tests.display.sharpness.title')"
       class="sharpness-panel__canvas"
     />
     <label class="sharpness-panel__toggle">

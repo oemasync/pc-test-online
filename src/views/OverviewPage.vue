@@ -1,6 +1,8 @@
 <template>
   <div class="overview">
-    <h1>{{ t('overview.title') }}</h1>
+    <h1 tabindex="-1">
+      {{ t('overview.title') }}
+    </h1>
     <div class="overview__grid">
       <div
         v-for="m in modules"

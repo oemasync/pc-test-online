@@ -27,7 +27,15 @@ describe('PixelCyclePanel', () => {
     wrapper.unmount()
   })
 
-  it('exits fullscreen on unmount', async () => {
+  it('does not intercept Space on a focused button', () => {
+    const wrapper = mountWithPlugins(PixelCyclePanel)
+    const btn = wrapper.find('button').element as HTMLElement
+    const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })
+    btn.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(false)
+    wrapper.unmount()
+  })
+    it('exits fullscreen on unmount', async () => {
     const wrapper = mountWithPlugins(PixelCyclePanel)
     const stage = (wrapper.vm as { stageRef: { value: HTMLElement | null } }).stageRef.value as HTMLElement
     Object.defineProperty(document, 'fullscreenElement', {

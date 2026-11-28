@@ -1,6 +1,8 @@
 <template>
   <div>
-    <h1>{{ t('notFound.title') }}</h1>
+    <h1 tabindex="-1">
+      {{ t('notFound.title') }}
+    </h1>
     <p>{{ t('notFound.message') }}</p>
   </div>
 </template>

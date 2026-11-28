@@ -2,12 +2,16 @@
   <div class="spectrum">
     <canvas
       ref="waveCanvas"
+      role="img"
+      :aria-label="t('tests.microphone.waveformCanvas')"
       class="spectrum__canvas"
       width="320"
       height="80"
     />
     <canvas
       ref="freqCanvas"
+      role="img"
+      :aria-label="t('tests.microphone.spectrumCanvas')"
       class="spectrum__canvas"
       width="320"
       height="80"
@@ -17,8 +21,13 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useReducedMotion } from '@/lib/useReducedMotion';
 
 defineOptions({ name: 'SpectrumView' });
+
+const { t } = useI18n();
+const { reduced } = useReducedMotion();
 
 const props = defineProps<{
     analyser: AnalyserNode | null;
@@ -28,8 +37,15 @@ const waveCanvas = ref<HTMLCanvasElement | null>(null);
 const freqCanvas = ref<HTMLCanvasElement | null>(null);
 
 let rafId = 0;
+let lastDrawTime = 0;
 
-function draw(): void {
+function draw(now?: number): void {
+    const time = now ?? performance.now();
+    if (reduced.value && time - lastDrawTime < 250) {
+        rafId = requestAnimationFrame(draw);
+        return;
+    }
+    if (reduced.value) lastDrawTime = time;
     const analyser = props.analyser;
     const wave = waveCanvas.value;
     const freq = freqCanvas.value;

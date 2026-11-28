@@ -15,6 +15,7 @@
       <DeviceSelect
         :devices="devices.devices.value"
         :model-value="selectedDeviceId"
+        :aria-label="t('tests.microphone.deviceLabel')"
         @update:model-value="onDeviceChange"
       />
 

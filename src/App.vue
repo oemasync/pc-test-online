@@ -3,6 +3,12 @@
     class="app"
     :data-theme="theme"
   >
+    <a
+      class="skip-link"
+      href="#main-content"
+    >
+      {{ t('a11y.skipToContent') }}
+    </a>
     <header class="app__header">
       <div class="app__header-left">
         <a
@@ -91,7 +97,12 @@
         </ul>
       </aside>
 
-      <main class="app__main">
+      <main
+        id="main-content"
+        ref="mainRef"
+        tabindex="-1"
+        class="app__main"
+      >
         <router-view />
       </main>
 
@@ -127,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { setLocale } from '@/i18n'
 import { getTestModules } from '@/core/registry'
@@ -135,10 +146,44 @@ import type { TestModule } from '@/core/types'
 import { elapsed, getStatus, reset as resetStore, skip } from '@/core/results'
 import { exportJson } from '@/core/report'
 import StatusLight from '@/ui/StatusLight.vue'
+import { useRoute } from 'vue-router'
 
 const { t, locale } = useI18n()
 const locales = ['en', 'es']
 const modules = getTestModules()
+const route = useRoute()
+const mainRef = ref<HTMLElement | null>(null)
+
+function focusPageHeading(): void {
+  const main = mainRef.value
+  const heading = (main?.querySelector('h1, h2, h3') ?? null) as HTMLElement | null
+  const target = heading ?? main
+  if (!target || !target.isConnected) {
+    return
+  }
+  if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1')
+  target.tabIndex = -1
+  target.focus()
+}
+
+watch(
+  () => route.fullPath,
+  () => {
+    void nextTick().then(() => {
+      const attempt = (remaining: number): void => {
+        if (remaining <= 0) return
+        const main = mainRef.value
+        const heading = (main?.querySelector('h1, h2, h3') ?? null) as HTMLElement | null
+        if (!main || !heading) {
+          window.setTimeout(() => attempt(remaining - 1), 16)
+          return
+        }
+        focusPageHeading()
+      }
+      attempt(10)
+    })
+  },
+)
 watch(locale, (value) => setLocale(value as 'en' | 'es'))
 const theme = ref<'light' | 'dark'>('light')
 const tick = ref(0)
@@ -202,7 +247,7 @@ function exportReport(): void {
   --text-secondary: #6b7280;
   --border: #e5e7eb;
   --surface: #f9fafb;
-  --color-danger: #ef4444;
+  --color-danger: #dc2626;
   --color-warning: #f59e0b;
   --color-warning-bg: #fef3c7;
   --color-success: #22c55e;
@@ -245,6 +290,9 @@ function exportReport(): void {
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  --overlay-bg: rgba(17, 24, 39, 0.85);
+  --overlay-text: #ffffff;
 }
 [data-theme='dark'] {
   --bg: #111827;
@@ -258,13 +306,15 @@ function exportReport(): void {
   --color-success: #4ade80;
   --color-accent: #60a5fa;
   --color-text-muted: #9ca3af;
-
   --color-on-success: #052e16;
   --color-on-warning: #422006;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  --overlay-bg: rgba(0, 0, 0, 0.85);
+  --overlay-text: #ffffff;
 }
 *,
 *::before,
@@ -282,7 +332,6 @@ body {
   line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-}
 .app {
   display: flex;
   flex-direction: column;
@@ -343,8 +392,32 @@ body {
 .app__sidebar li {
   margin: 0;
 }
+.app__link,
+.skip-link {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+.app__link:hover,
+.skip-link:hover {
+  text-decoration: underline;
+}
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  padding: 0.5rem 1rem;
+  background: var(--bg);
+  color: var(--color-accent);
+  z-index: 100;
+  transition: top 0.15s ease;
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 0;
+}
 .app__test-link {
-  display: flex;
+  min-height: 24px;
+  display: inline-flex;
   align-items: center;
   gap: var(--space-2);
   text-decoration: none;

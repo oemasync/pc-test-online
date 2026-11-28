@@ -9,7 +9,8 @@
     "currentColor": "Color actual",
     "markDefect": "Marcar defecto en este color",
     "defects": "Colores con defectos marcados",
-    "fullscreenUnavailable": "La pantalla completa no está disponible en este navegador"
+    "fullscreenUnavailable": "La pantalla completa no está disponible en este navegador",
+    "photosensitivityWarning": "Advertencia de fotosensibilidad: esta prueba cambia rápidamente colores a pantalla completa y puede provocar convulsiones. No la ejecutes si eres fotosensible."
   },
   "gradient": {
     "title": "Bandeado de degradados",
@@ -38,7 +39,8 @@
     "medianInterval": "Intervalo medio de fotograma",
     "samples": "Muestras",
     "rejected": "Valores atípicos rechazados",
-    "jitter": "Variación de ritmo de fotogramas"
+    "jitter": "Variación de ritmo de fotogramas",
+    "resultAnnouncement": "Tasa medida {hz} Hz, estándar más cercano {std} Hz."
   },
   "capability": {
     "title": "Capacidad HDR / gama",
