@@ -48,7 +48,10 @@
   },
   "summary": {
     "title": "Resumen",
-    "empty": "Aún no se han ejecutado pruebas."
+    "empty": "Aún no se han ejecutado pruebas.",
+    "test": "Prueba",
+    "status": "Estado",
+    "duration": "Duración"
   },
   "notFound": {
     "title": "404",

@@ -8,9 +8,9 @@
       <table>
         <thead>
           <tr>
-            <th>Test</th>
-            <th>Status</th>
-            <th>Duration</th>
+            <th>{{ t('summary.test') }}</th>
+            <th>{{ t('summary.status') }}</th>
+            <th>{{ t('summary.duration') }}</th>
           </tr>
         </thead>
         <tbody>

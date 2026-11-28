@@ -48,7 +48,10 @@
   },
   "summary": {
     "title": "Summary",
-    "empty": "No tests run yet."
+    "empty": "No tests run yet.",
+    "test": "Test",
+    "status": "Status",
+    "duration": "Duration"
   },
   "notFound": {
     "title": "404",

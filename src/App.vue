@@ -86,7 +86,7 @@
             <router-link
               to="/summary"
               class="app__test-link"
-            >Summary</router-link>
+            >{{ t('nav.summary') }}</router-link>
           </li>
         </ul>
       </aside>
