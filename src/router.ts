@@ -13,15 +13,17 @@ export function isChunkLoadError(err: unknown): boolean {
 
 export function handleRouterError(err: unknown, to: { fullPath: string }): boolean {
   if (!isChunkLoadError(err)) return false
+  let guardState: 'reloaded' | 'fresh' | 'unavailable'
   try {
-    if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === '1') return false
+    guardState = sessionStorage.getItem(CHUNK_RELOAD_KEY) === '1' ? 'reloaded' : 'fresh'
   } catch {
-    // sessionStorage may be unavailable; continue.
+    guardState = 'unavailable'
   }
+  if (guardState !== 'fresh') return false
   try {
     sessionStorage.setItem(CHUNK_RELOAD_KEY, '1')
   } catch {
-    // ignore
+    return false
   }
   window.location.assign(to.fullPath)
   return true

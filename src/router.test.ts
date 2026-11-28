@@ -30,6 +30,37 @@ describe('router chunk-load error handling', () => {
     expect(assign).toHaveBeenCalledTimes(1)
   })
 
+  it('does not reload when sessionStorage is unavailable', () => {
+    const assign = vi.fn()
+    vi.spyOn(window.location, 'assign').mockImplementation(assign)
+
+    vi.spyOn(sessionStorage, 'getItem').mockImplementation(() => {
+      throw new Error('no storage')
+    })
+
+    const result = handleRouterError(new Error('Failed to fetch dynamically imported module'), {
+      fullPath: '/test/keyboard',
+    })
+    expect(result).toBe(false)
+    expect(assign).not.toHaveBeenCalled()
+  })
+
+  it('does not reload when sessionStorage cannot be written', () => {
+    const assign = vi.fn()
+    vi.spyOn(window.location, 'assign').mockImplementation(assign)
+
+    vi.spyOn(sessionStorage, 'getItem').mockReturnValue(null)
+    vi.spyOn(sessionStorage, 'setItem').mockImplementation(() => {
+      throw new Error('no storage')
+    })
+
+    const result = handleRouterError(new Error('Failed to fetch dynamically imported module'), {
+      fullPath: '/test/keyboard',
+    })
+    expect(result).toBe(false)
+    expect(assign).not.toHaveBeenCalled()
+  })
+
   it('does not reload for non-chunk errors', () => {
     const assign = vi.fn()
     vi.spyOn(window.location, 'assign').mockImplementation(assign)
