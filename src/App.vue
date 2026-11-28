@@ -209,6 +209,10 @@ function exportReport(): void {
   --color-accent: #2563eb;
   --color-text-muted: #6b7280;
 
+  --color-on-success: #052e16;
+  --color-on-warning: #422006;
+  --color-on-danger: #7f1d1d;
+
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -256,6 +260,10 @@ function exportReport(): void {
   --color-accent: #60a5fa;
   --color-text-muted: #9ca3af;
 
+  --color-on-success: #052e16;
+  --color-on-warning: #422006;
+  --color-on-danger: #7f1d1d;
+
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
@@ -283,7 +291,6 @@ body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  overflow-x: hidden;
 }
 .app__header {
   display: flex;
@@ -330,6 +337,14 @@ body {
 .app__footer button {
   flex: 1 1 0;
 }
+.app__sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.app__sidebar li {
+  margin: 0;
+}
 .app__test-link {
   display: flex;
   align-items: center;
@@ -339,9 +354,26 @@ body {
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
   transition: background var(--dur-fast) var(--ease);
+  flex-wrap: wrap;
 }
 .app__test-link:hover {
   background: var(--surface);
+}
+.app__sidebar button.app__test-link {
+  border: none;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+.app__sidebar button.app__test-link:hover {
+  background: var(--surface);
+}
+.app__unsupported {
+  flex-basis: 100%;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
 }
 .app__timer {
   display: flex;
@@ -411,10 +443,6 @@ textarea:focus {
   outline: none;
 }
 
-:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
@@ -432,18 +460,6 @@ svg {
 }
 canvas {
   max-width: 100%;
-}
-
-.overview__card {
-  background: var(--surface);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--dur-fast) var(--ease),
-    box-shadow var(--dur-fast) var(--ease);
-}
-.overview__card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
 }
 
 @media (prefers-reduced-motion: reduce) {
