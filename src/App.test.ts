@@ -36,9 +36,6 @@ describe('App shell a11y', () => {
     await router.push('/summary')
     await nextTick()
     await new Promise((r) => setTimeout(r, 200))
-    const main = (App as any).__mainRef // no
-    console.log('TEST MAINREF', !!document.querySelector('#main-content'))
-    const h = document.querySelector('#main-content h1')
-    console.log('TEST H1', h?.textContent, 'connected=', h?.isConnected)
+    expect(document.activeElement?.textContent).toContain('Summary')
   })
 })

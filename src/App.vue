@@ -118,8 +118,8 @@
       </aside>
 
       <main
-        ref="mainRef"
         id="main-content"
+        ref="mainRef"
         tabindex="-1"
         class="app__main"
       >
