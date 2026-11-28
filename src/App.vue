@@ -263,7 +263,7 @@ function exportReport(): void {
   --text-secondary: #6b7280;
   --border: #e5e7eb;
   --surface: #f9fafb;
-  --color-danger: #ef4444;
+  --color-danger: #dc2626;
   --color-warning: #f59e0b;
   --color-warning-bg: #fef3c7;
   --color-success: #22c55e;

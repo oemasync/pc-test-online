@@ -24,6 +24,6 @@ const message = computed(() =>
 <style scoped>
 .permission-prompt {
   padding: 0.5rem;
-  color: #ef4444;
+  color: var(--color-danger);
 }
 </style>

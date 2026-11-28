@@ -125,13 +125,15 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text);
-    text-shadow: 0 1px 2px var(--bg);
+    color: #ffffff;
+    text-shadow: none;
 }
 
 .pixel-cycle__overlay {
     padding: 1rem;
     text-align: center;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 0.5rem;
 }
 
 .pixel-cycle__hint {
