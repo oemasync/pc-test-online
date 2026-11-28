@@ -18,15 +18,19 @@
       <router-link
         v-if="prev"
         :to="`/test/${prev.id}`"
+        class="app__link"
       >{{ t('buttons.prev') }}</router-link>
       <router-link
         v-if="next"
         :to="`/test/${next.id}`"
+        class="app__link"
       >{{ t('buttons.next') }}</router-link>
     </nav>
   </div>
   <div v-else>
-    <h1>{{ t('notFound.title') }}</h1>
+    <h1 tabindex="-1">
+      {{ t('notFound.title') }}
+    </h1>
     <p>{{ t('notFound.message') }}</p>
   </div>
 </template>
