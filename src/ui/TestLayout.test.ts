@@ -11,7 +11,7 @@ describe('TestLayout', () => {
       props: { testId: 'keyboard', title: 'Keyboard', details: { keys: 3 }, canPass: true },
       global: { plugins: [i18n] },
     })
-    const passBtn = wrapper.findAll('button').find((b) => b.text() === 'Pass')
+    const passBtn = wrapper.find('[data-testid="pass-button"]')
     await passBtn?.trigger('click')
     expect(getStatus('keyboard')).toBe('passed')
   })
@@ -22,7 +22,7 @@ describe('TestLayout', () => {
       props: { testId: 'keyboard', title: 'Keyboard', canPass: false },
       global: { plugins: [i18n] },
     })
-    const passBtn = wrapper.findAll('button').find((b) => b.text() === 'Pass')
+    const passBtn = wrapper.find('[data-testid="pass-button"]')
     expect(passBtn?.attributes('disabled')).toBeDefined()
   })
 
@@ -32,12 +32,12 @@ describe('TestLayout', () => {
       props: { testId: 'keyboard', title: 'Keyboard', details: { keys: 1 } },
       global: { plugins: [i18n] },
     })
-    const failBtn = wrapper.findAll('button').find((b) => b.text() === 'Fail')
+    const failBtn = wrapper.find('[data-testid="fail-button"]')
     await failBtn?.trigger('click')
     const textarea = wrapper.find('textarea')
     expect(textarea.exists()).toBe(true)
     await textarea.setValue('broken')
-    const confirm = wrapper.findAll('button').find((b) => b.text() === 'Confirm')
+    const confirm = wrapper.find('[data-testid="fail-confirm-button"]')
     await confirm?.trigger('click')
     expect(getStatus('keyboard')).toBe('failed')
   })
@@ -48,7 +48,7 @@ describe('TestLayout', () => {
       props: { testId: 'keyboard', title: 'Keyboard' },
       global: { plugins: [i18n] },
     })
-    const skipBtn = wrapper.findAll('button').find((b) => b.text() === 'Skip')
+    const skipBtn = wrapper.find('[data-testid="skip-button"]')
     await skipBtn?.trigger('click')
     expect(getStatus('keyboard')).toBe('skipped')
   })
@@ -59,7 +59,7 @@ describe('TestLayout', () => {
       props: { testId: 'keyboard', title: 'Keyboard' },
       global: { plugins: [i18n] },
     })
-    const retryBtn = wrapper.findAll('button').find((b) => b.text() === 'Retest')
+    const retryBtn = wrapper.find('[data-testid="retest-button"]')
     await retryBtn?.trigger('click')
     expect(getStatus('keyboard')).toBe('running')
   })
