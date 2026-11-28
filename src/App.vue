@@ -332,6 +332,7 @@ body {
   line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
 .app {
   display: flex;
   flex-direction: column;
