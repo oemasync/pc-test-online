@@ -159,6 +159,7 @@ let previousFrame: Uint8ClampedArray | null = null
 let rVfcId = 0
 let rafId = 0
 let running = false
+let disposed = false
 let measuredVideo: HTMLVideoElement | null = null
 
 const resolutionText = computed(() => {
@@ -317,12 +318,23 @@ async function startCamera(deviceId?: string): Promise<void> {
     ? { video: { deviceId: { exact: deviceId } } }
     : { video: true }
   const result = await media.start(constraints)
+  if (disposed) {
+    media.stop()
+    stopMeasurement()
+    return
+  }
   if (result.error) {
     error.value = result.error
     return
   }
   await attachAndMeasure()
+  if (disposed) {
+    media.stop()
+    stopMeasurement()
+    return
+  }
   await refreshDevices()
+  if (disposed) return
   const currentDeviceId = trackRef.value?.getSettings().deviceId
   if (currentDeviceId && !selectedDeviceId.value) {
     selectedDeviceId.value = currentDeviceId
@@ -338,10 +350,14 @@ function captureSnapshot(): void {
   const context = canvas.getContext('2d')
   if (!context) return
   if (mirror.value) {
+    context.save()
     context.translate(canvas.width, 0)
     context.scale(-1, 1)
+    context.drawImage(video, 0, 0)
+    context.restore()
+  } else {
+    context.drawImage(video, 0, 0)
   }
-  context.drawImage(video, 0, 0)
   snapshotCaptured.value = true
   canvas.toBlob(blob => {
     if (!blob) return
@@ -350,7 +366,7 @@ function captureSnapshot(): void {
     link.href = url
     link.download = 'webcam-snapshot.png'
     link.click()
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), 0)
   }, 'image/png')
 }
 
@@ -360,10 +376,12 @@ watch(selectedDeviceId, (newId, oldId) => {
 })
 
 onMounted(() => {
+  disposed = false
   void startCamera()
 })
 
 onUnmounted(() => {
+  disposed = true
   stopMeasurement()
   media.stop()
 })
